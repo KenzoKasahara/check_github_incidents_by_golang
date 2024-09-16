@@ -1,0 +1,5 @@
+
+2024/09/15 10:16:23 main.go:66: [INFO] 【start process】
+2024/09/15 10:16:23 main.go:34: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2024/09/15 10:16:23 main.go:42: [INFO] body: {"page":{"id":"kctbh9vrtdwd","name":"GitHub","url":"https://www.githubstatus.com","time_zone":"Etc/UTC","updated_at":"2024-09-14T22:43:08.554Z"},"incidents":[]}
+2024/09/15 10:16:23 main.go:69: [INFO] 【end process】
