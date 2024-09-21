@@ -50,18 +50,30 @@ type HistoryIncidents struct {
 		UpdateAt string `json:"updated_at"`
 	} `json:"page"`
 	Incidents []struct {
-		CreatedAt       string   `json:"created_at"`
-		ID              string   `json:"id"`
-		Impact          string   `json:"impact"`
-		IncidentUpdates []string `json:"incident_updates"`
-		MonitoringAt    string   `json:"monitoring_at"`
-		Name            string   `json:"name"`
-		PageID          string   `json:"page_id"`
-		ResolvedAt      bool     `json:"resolved"`
-		ShortLink       string   `json:"shortlink"`
-		Status          string   `json:"status"`
-		UpdatedAt       string   `json:"updated_at"`
+		CreatedAt          string   `json:"created_at"`
+		ID                 string   `json:"id"`
+		Impact             string   `json:"impact"`
+		IncidentUpdates    []string `json:"incident_updates"`
+		MonitoringAt       string   `json:"monitoring_at"`
+		Name               string   `json:"name"`
+		PageID             string   `json:"page_id"`
+		ResolvedAt         bool     `json:"resolved"`
+		ShortLink          string   `json:"shortlink"`
+		Status             string   `json:"status"`
+		UpdatedAt          string   `json:"updated_at"`
+		AffectedComponents []struct {
+			Name string `json:"name"`
+		} `json:"affected_components"`
 	}
+}
+
+type NoticeMessage struct {
+	IncidentID        string `json:"id"`
+	IncidentImpact    string `json:"impact"`
+	IncidentName      string `json:"name"`
+	IncidentStatus    string `json:"status"`
+	IncidentCreatedAt string `json:"created_at"`
+	IncidentUpdatedAt string `json:"updated_at"`
 }
 
 func LoggingSettings(logFile string) {
@@ -177,24 +189,68 @@ func main() {
 
 	// ログファイル名を日付で作成
 	time := time.Now()
-	fmt.Println(time.Format("20060102"))
 	logFileName := fmt.Sprintf("%vlog-%v.log", createFolderPath, time.Format("20060102"))
 	LoggingSettings(logFileName)
 
 	// 【処理開始】
+	log.Println(repeatedStars)
 	log.Printf("%v %v\n", "[INFO]", "【start process】")
-	fmt.Println(repeatedStars)
 
 	// 未解決のインシデントを取得
 	unResolbIncidents := GetUnResolvedIncidents()
-	fmt.Printf("Unresolved Incidents: %v\n", unResolbIncidents.Incidents)
-	fmt.Println(repeatedStars)
 
 	// 過去のインシデントを取得
 	historyIncidents := GetHistoryIncidents()
-	fmt.Printf("History Incidents: %v\n", historyIncidents.Incidents)
-	fmt.Println(repeatedStars)
+
+	// 過去のインシデントと未解決のインシデントより、重複するインシデント情報を取得
+	var noticeMessage []NoticeMessage
+	fmt.Printf("noticeMessage: %T\n", noticeMessage)
+
+	for _, historyIncident := range historyIncidents.Incidents {
+		for _, unResolbIncident := range unResolbIncidents.Incidents {
+			if historyIncident.ID == unResolbIncident.ID {
+				jsonData := `{"id": "` + unResolbIncident.ID + `",` +
+					`"name": "` + unResolbIncident.Name + `",` +
+					`"impact": "` + unResolbIncident.Impact + `",` +
+					`"status": "` + unResolbIncident.Status + `",` +
+					`"components": "` + fmt.Sprint(historyIncidents.Incidents[0].AffectedComponents) + `",` +
+					`"created_at": "` + unResolbIncident.CreatedAt + `",` +
+					`"updated_at": "` + unResolbIncident.UpdatedAt + `"` +
+					`}`
+
+				var message NoticeMessage
+				if err := json.Unmarshal([]byte(jsonData), &message); err != nil {
+					fmt.Println("エラー: ", err)
+					return
+				}
+
+				// noticeMessageスライスに追加
+				noticeMessage = append(noticeMessage, message)
+			}
+		}
+	}
+
+	// noticeMessageスライスをJSONにエンコード
+	indentJsonData, err := json.MarshalIndent(noticeMessage, "", "    ")
+	if err != nil {
+		log.Fatal("エラー: ", err)
+	}
+
+	// file作成
+	file, err := os.Create("./notice_message.json")
+	if err != nil {
+		log.Fatal("エラー", err)
+	}
+	defer file.Close()
+
+	// JSONデータをファイルに書き込む
+	_, err = file.Write(indentJsonData)
+	if err != nil {
+		log.Fatal("エラー", err)
+	}
+	log.Printf("%v %v\n", "[INFO]", "メッセージをファイルに書き込みました。")
 
 	// 【処理終了】
 	log.Printf("%v %v\n", "[INFO]", "【end process】")
+	log.Println(repeatedStars)
 }
