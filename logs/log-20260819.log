@@ -1,0 +1,285 @@
+2026/08/19 13:21:24 main.go:278: **********************************************************************
+2026/08/19 13:21:24 main.go:279: [INFO] 【start process】
+2026/08/19 13:21:24 main.go:282: [INFO] data source: local sample files
+2026/08/19 13:21:24 main.go:290: [ERROR] JSON の解析に失敗しました (./sample/unresolved_incidents.json): json: cannot unmarshal object into Go struct field .Incidents.incident_updates of type string
+2026/08/19 13:21:25 main.go:278: **********************************************************************
+2026/08/19 13:21:25 main.go:279: [INFO] 【start process】
+2026/08/19 13:21:25 main.go:282: [INFO] data source: local sample files
+2026/08/19 13:21:25 main.go:290: [ERROR] JSON の解析に失敗しました (./sample/unresolved_incidents.json): json: cannot unmarshal object into Go struct field .Incidents.incident_updates of type string
+2026/08/19 13:21:25 main.go:278: **********************************************************************
+2026/08/19 13:21:25 main.go:279: [INFO] 【start process】
+2026/08/19 13:21:25 main.go:284: [INFO] data source: https://www.githubstatus.com
+2026/08/19 13:21:25 main.go:140: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2026/08/19 13:21:25 main.go:223: [WARNING] No incidents found.
+2026/08/19 13:21:25 main.go:140: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents.json
+2026/08/19 13:21:26 main.go:296: [ERROR] JSON の解析に失敗しました (/api/v2/incidents.json): json: cannot unmarshal object into Go struct field .Incidents.incident_updates of type string
+2026/08/19 13:22:12 main.go:288: **********************************************************************
+2026/08/19 13:22:12 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:12 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:22:12 main.go:353: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:12 main.go:356: [INFO] 【end process】
+2026/08/19 13:22:12 main.go:357: **********************************************************************
+2026/08/19 13:22:19 main.go:288: **********************************************************************
+2026/08/19 13:22:19 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:19 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:22:19 main.go:353: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:19 main.go:356: [INFO] 【end process】
+2026/08/19 13:22:19 main.go:357: **********************************************************************
+2026/08/19 13:22:19 main.go:288: **********************************************************************
+2026/08/19 13:22:19 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:19 main.go:294: [INFO] data source: https://www.githubstatus.com
+2026/08/19 13:22:19 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2026/08/19 13:22:20 main.go:233: [WARNING] No incidents found.
+2026/08/19 13:22:20 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents.json
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 0 bmpybhnrky3x
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 1 gx7js8bd0jpz
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 2 zkxwbgr0cnmx
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 3 pf25whpq58hh
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 4 24t8gsgqx2qb
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 5 k8vbzwqjkxzn
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 6 lsvy8xsf0gxv
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 7 76t89hbfb09h
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 8 vm1w8zq95wkt
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 9 1t7x65n7kvt1
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 10 s19bth7wzkf7
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 11 qcvjkzcs7j74
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 12 1xqvzyv99skw
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 13 9wzhl5jr80jt
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 14 7s119p1yxttr
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 15 sj1tzyrx599x
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 16 kk183dslzdzd
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 17 9tpgqq1h4bs7
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 18 dsrfymph7my0
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 19 75g5xmzptjqb
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 20 fmmsrcg5x638
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 21 pz7g535gbs6p
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 22 vv9vvksmj4s9
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 23 s65j9gslmfm8
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 24 jxd617hfwfq8
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 25 yjysg0xrl67m
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 26 594m87r8sw13
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 27 zq3c1jst2vkq
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 28 20frdtvv3yg6
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 29 g40zcbvchny4
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 30 fd7j2mw8xw94
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 31 8vfyvq16hzh9
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 32 ph5nns5y4gxj
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 33 gxycch3076xk
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 34 0f6hndclsk21
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 35 d35pngcy6sb9
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 36 ydpk76bj34z8
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 37 dfpfsngcwywf
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 38 q27ttsnp0x4g
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 39 cstx3v63mklm
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 40 fz9sdc2q008p
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 41 5bnwwg9tzd4q
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 42 rl7f90w0n0gq
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 43 mc4yx9f8x1hk
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 44 0rkjjs2ssp7z
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 45 v0b3bpsyvqtk
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 46 9ndxtnrwjf37
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 47 9n670kvk0vw9
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 48 5t81zk0vrk3z
+2026/08/19 13:22:20 main.go:264: [INFO] incident: 49 kn7gv3tlfc54
+2026/08/19 13:22:20 main.go:353: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:20 main.go:356: [INFO] 【end process】
+2026/08/19 13:22:20 main.go:357: **********************************************************************
+2026/08/19 13:22:20 main.go:288: **********************************************************************
+2026/08/19 13:22:20 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:20 main.go:294: [INFO] data source: https://www.githubstatus.com
+2026/08/19 13:22:20 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2026/08/19 13:22:21 main.go:233: [WARNING] No incidents found.
+2026/08/19 13:22:21 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents.json
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 0 bmpybhnrky3x
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 1 gx7js8bd0jpz
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 2 zkxwbgr0cnmx
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 3 pf25whpq58hh
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 4 24t8gsgqx2qb
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 5 k8vbzwqjkxzn
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 6 lsvy8xsf0gxv
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 7 76t89hbfb09h
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 8 vm1w8zq95wkt
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 9 1t7x65n7kvt1
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 10 s19bth7wzkf7
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 11 qcvjkzcs7j74
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 12 1xqvzyv99skw
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 13 9wzhl5jr80jt
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 14 7s119p1yxttr
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 15 sj1tzyrx599x
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 16 kk183dslzdzd
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 17 9tpgqq1h4bs7
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 18 dsrfymph7my0
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 19 75g5xmzptjqb
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 20 fmmsrcg5x638
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 21 pz7g535gbs6p
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 22 vv9vvksmj4s9
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 23 s65j9gslmfm8
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 24 jxd617hfwfq8
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 25 yjysg0xrl67m
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 26 594m87r8sw13
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 27 zq3c1jst2vkq
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 28 20frdtvv3yg6
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 29 g40zcbvchny4
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 30 fd7j2mw8xw94
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 31 8vfyvq16hzh9
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 32 ph5nns5y4gxj
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 33 gxycch3076xk
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 34 0f6hndclsk21
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 35 d35pngcy6sb9
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 36 ydpk76bj34z8
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 37 dfpfsngcwywf
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 38 q27ttsnp0x4g
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 39 cstx3v63mklm
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 40 fz9sdc2q008p
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 41 5bnwwg9tzd4q
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 42 rl7f90w0n0gq
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 43 mc4yx9f8x1hk
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 44 0rkjjs2ssp7z
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 45 v0b3bpsyvqtk
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 46 9ndxtnrwjf37
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 47 9n670kvk0vw9
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 48 5t81zk0vrk3z
+2026/08/19 13:22:21 main.go:264: [INFO] incident: 49 kn7gv3tlfc54
+2026/08/19 13:22:21 main.go:353: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:21 main.go:356: [INFO] 【end process】
+2026/08/19 13:22:21 main.go:357: **********************************************************************
+2026/08/19 13:22:36 main.go:288: **********************************************************************
+2026/08/19 13:22:36 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:36 main.go:294: [INFO] data source: https://www.githubstatus.com
+2026/08/19 13:22:36 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2026/08/19 13:22:36 main.go:233: [WARNING] No incidents found.
+2026/08/19 13:22:36 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents.json
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 0 bmpybhnrky3x
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 1 gx7js8bd0jpz
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 2 zkxwbgr0cnmx
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 3 pf25whpq58hh
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 4 24t8gsgqx2qb
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 5 k8vbzwqjkxzn
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 6 lsvy8xsf0gxv
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 7 76t89hbfb09h
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 8 vm1w8zq95wkt
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 9 1t7x65n7kvt1
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 10 s19bth7wzkf7
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 11 qcvjkzcs7j74
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 12 1xqvzyv99skw
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 13 9wzhl5jr80jt
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 14 7s119p1yxttr
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 15 sj1tzyrx599x
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 16 kk183dslzdzd
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 17 9tpgqq1h4bs7
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 18 dsrfymph7my0
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 19 75g5xmzptjqb
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 20 fmmsrcg5x638
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 21 pz7g535gbs6p
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 22 vv9vvksmj4s9
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 23 s65j9gslmfm8
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 24 jxd617hfwfq8
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 25 yjysg0xrl67m
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 26 594m87r8sw13
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 27 zq3c1jst2vkq
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 28 20frdtvv3yg6
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 29 g40zcbvchny4
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 30 fd7j2mw8xw94
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 31 8vfyvq16hzh9
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 32 ph5nns5y4gxj
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 33 gxycch3076xk
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 34 0f6hndclsk21
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 35 d35pngcy6sb9
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 36 ydpk76bj34z8
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 37 dfpfsngcwywf
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 38 q27ttsnp0x4g
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 39 cstx3v63mklm
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 40 fz9sdc2q008p
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 41 5bnwwg9tzd4q
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 42 rl7f90w0n0gq
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 43 mc4yx9f8x1hk
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 44 0rkjjs2ssp7z
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 45 v0b3bpsyvqtk
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 46 9ndxtnrwjf37
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 47 9n670kvk0vw9
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 48 5t81zk0vrk3z
+2026/08/19 13:22:36 main.go:264: [INFO] incident: 49 kn7gv3tlfc54
+2026/08/19 13:22:36 main.go:354: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:36 main.go:357: [INFO] 【end process】
+2026/08/19 13:22:36 main.go:358: **********************************************************************
+2026/08/19 13:22:37 main.go:288: **********************************************************************
+2026/08/19 13:22:37 main.go:289: [INFO] 【start process】
+2026/08/19 13:22:37 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:22:37 main.go:354: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:22:37 main.go:357: [INFO] 【end process】
+2026/08/19 13:22:37 main.go:358: **********************************************************************
+2026/08/19 13:26:04 main.go:288: **********************************************************************
+2026/08/19 13:26:04 main.go:289: [INFO] 【start process】
+2026/08/19 13:26:04 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:26:04 main.go:354: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:26:04 main.go:357: [INFO] 【end process】
+2026/08/19 13:26:04 main.go:358: **********************************************************************
+2026/08/19 13:27:58 main.go:288: **********************************************************************
+2026/08/19 13:27:58 main.go:289: [INFO] 【start process】
+2026/08/19 13:27:58 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:27:58 main.go:300: [ERROR] ファイルのオープンに失敗しました (./sample/unresolved_incidents.json): open ./sample/unresolved_incidents.json: The system cannot find the file specified.
+2026/08/19 13:28:47 main.go:288: **********************************************************************
+2026/08/19 13:28:47 main.go:289: [INFO] 【start process】
+2026/08/19 13:28:47 main.go:292: [INFO] data source: local sample files
+2026/08/19 13:28:47 main.go:354: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:28:47 main.go:357: [INFO] 【end process】
+2026/08/19 13:28:47 main.go:358: **********************************************************************
+2026/08/19 13:29:14 main.go:288: **********************************************************************
+2026/08/19 13:29:14 main.go:289: [INFO] 【start process】
+2026/08/19 13:29:14 main.go:294: [INFO] data source: https://www.githubstatus.com
+2026/08/19 13:29:14 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents/unresolved.json
+2026/08/19 13:29:15 main.go:233: [WARNING] No incidents found.
+2026/08/19 13:29:15 main.go:150: [INFO] endpoint: https://www.githubstatus.com/api/v2/incidents.json
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 0 bmpybhnrky3x
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 1 gx7js8bd0jpz
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 2 zkxwbgr0cnmx
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 3 pf25whpq58hh
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 4 24t8gsgqx2qb
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 5 k8vbzwqjkxzn
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 6 lsvy8xsf0gxv
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 7 76t89hbfb09h
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 8 vm1w8zq95wkt
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 9 1t7x65n7kvt1
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 10 s19bth7wzkf7
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 11 qcvjkzcs7j74
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 12 1xqvzyv99skw
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 13 9wzhl5jr80jt
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 14 7s119p1yxttr
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 15 sj1tzyrx599x
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 16 kk183dslzdzd
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 17 9tpgqq1h4bs7
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 18 dsrfymph7my0
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 19 75g5xmzptjqb
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 20 fmmsrcg5x638
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 21 pz7g535gbs6p
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 22 vv9vvksmj4s9
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 23 s65j9gslmfm8
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 24 jxd617hfwfq8
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 25 yjysg0xrl67m
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 26 594m87r8sw13
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 27 zq3c1jst2vkq
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 28 20frdtvv3yg6
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 29 g40zcbvchny4
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 30 fd7j2mw8xw94
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 31 8vfyvq16hzh9
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 32 ph5nns5y4gxj
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 33 gxycch3076xk
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 34 0f6hndclsk21
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 35 d35pngcy6sb9
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 36 ydpk76bj34z8
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 37 dfpfsngcwywf
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 38 q27ttsnp0x4g
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 39 cstx3v63mklm
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 40 fz9sdc2q008p
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 41 5bnwwg9tzd4q
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 42 rl7f90w0n0gq
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 43 mc4yx9f8x1hk
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 44 0rkjjs2ssp7z
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 45 v0b3bpsyvqtk
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 46 9ndxtnrwjf37
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 47 9n670kvk0vw9
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 48 5t81zk0vrk3z
+2026/08/19 13:29:15 main.go:264: [INFO] incident: 49 kn7gv3tlfc54
+2026/08/19 13:29:15 main.go:354: [INFO] メッセージをファイルに書き込みました。
+2026/08/19 13:29:15 main.go:357: [INFO] 【end process】
+2026/08/19 13:29:15 main.go:358: **********************************************************************
