@@ -6,10 +6,11 @@
 | ドキュメント | 内容 |
 | --- | --- |
 | [実行方法とテスト](usage.md) | 実行コマンド、オプション、dry-run、テスト |
+| [セットアップ](setup.md) | Raspberry Pi / Linux への導入。Go のインストールからビルドまで |
 | [設定](configuration.md) | `.env` の書き方、設定値の優先順位、データ取得元の切り替え |
 | [通知](notification.md) | Discord / Slack への通知内容、重複通知の抑止 |
 | [出力ファイル](output.md) | `notice_message.json` とログファイルの仕様 |
-| [定期実行](cron.md) | Raspberry Pi などで cron に登録して定期実行する手順 |
+| [定期実行](cron.md) | cron に登録して定期実行する手順 |
 | [処理の流れとディレクトリ構成](architecture.md) | 実行時の処理手順、ファイル構成 |
 
 ## 目的から探す
@@ -21,5 +22,6 @@
 - **オフラインで動作確認したい** → [設定](configuration.md#データ取得元の切り替え)
 - **ログを残す期間を変えたい** → [設定](configuration.md#env)（`LOG_RETENTION_DAYS`）
 - **出力される JSON の項目を知りたい** → [出力ファイル](output.md#notice_messagejson)
-- **Raspberry Pi で定期実行したい** → [定期実行](cron.md)
+- **Raspberry Pi へ導入したい** → [セットアップ](setup.md)
+- **定期実行したい** → [セットアップ](setup.md) のあと [定期実行](cron.md)
 - **コードを読みたい / 直したい** → [処理の流れとディレクトリ構成](architecture.md)
