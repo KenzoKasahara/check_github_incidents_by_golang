@@ -23,4 +23,5 @@ go run ./cmd/check-github-incidents
 | [設定](docs/configuration.md) | `.env` の書き方、設定値の優先順位、データ取得元の切り替え |
 | [通知](docs/notification.md) | Discord / Slack への通知内容、重複通知の抑止 |
 | [出力ファイル](docs/output.md) | `notice_message.json` とログファイルの仕様 |
+| [定期実行](docs/cron.md) | Raspberry Pi などで cron に登録して定期実行する手順 |
 | [処理の流れとディレクトリ構成](docs/architecture.md) | 実行時の処理手順、ファイル構成 |

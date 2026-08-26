@@ -1,0 +1,56 @@
+# check_github_incidents_by_golang – crontab の記述例（Raspberry Pi / Raspberry Pi OS）
+#
+# 使い方は 2 通りあります。
+#
+#   A) スクリプトに任せる（推奨・冪等）
+#        ./scripts/install-cron.sh                     （既定の 10 分ごと）
+#        ./scripts/install-cron.sh -s '*/30 * * * *'   （間隔を変える）
+#
+#   B) 自分で書く
+#        crontab -e     でエディタを開き、下の行を貼り付けてパスを直す
+#
+# どちらの場合も、先にバイナリを用意しておいてください。
+#        go build -o check-github-incidents ./cmd/check-github-incidents
+#
+# ---------------------------------------------------------------------------
+# cron の書式:  分  時  日  月  曜日  実行するコマンド
+#               │   │   │   │   └── 0-7（0 と 7 が日曜）
+#               │   │   │   └────── 1-12
+#               │   │   └────────── 1-31
+#               │   └────────────── 0-23
+#               └────────────────── 0-59
+# ---------------------------------------------------------------------------
+
+# run-check.sh はプロジェクト直下へ cd してからバイナリを絶対パスで呼ぶので、
+# PATH の補完は通常不要です。crontab に直接コマンドを書く場合のみ必要になります。
+# PATH=/usr/local/bin:/usr/bin:/bin
+
+# 実行結果のメール送信を止める（Raspberry Pi では MTA が入っていないことが多い）。
+# ログは logs/ に残るのでメールは不要です。
+MAILTO=""
+
+# --- 10 分ごとに実行する（推奨・install-cron.sh の既定と同じ） -------------
+*/10 * * * * /home/pi/check_github_incidents_by_golang/scripts/run-check.sh
+
+# --- ほかの間隔の例（どれか 1 つだけ有効にしてください） -------------------
+# 30 分ごと
+# */30 * * * * /home/pi/check_github_incidents_by_golang/scripts/run-check.sh
+#
+# 5 分ごと
+# */5 * * * * /home/pi/check_github_incidents_by_golang/scripts/run-check.sh
+#
+# 1 時間ごと（毎時 0 分）
+# 0 * * * * /home/pi/check_github_incidents_by_golang/scripts/run-check.sh
+#
+# 平日の 9 時〜19 時だけ 10 分ごと（それ以外の時間は動かさない）
+# */10 9-19 * * 1-5 /home/pi/check_github_incidents_by_golang/scripts/run-check.sh
+
+# --- ラッパーを使わずに直接呼ぶ場合 -----------------------------------------
+# cd を省くと .env が読まれず、ログもホームディレクトリ側に作られます。
+# */10 * * * * cd /home/pi/check_github_incidents_by_golang && ./check-github-incidents >/dev/null 2>&1
+
+# --- 注意 -------------------------------------------------------------------
+# * crontab の最終行は改行で終わっている必要があります（無いと読み込まれません）
+# * 時刻は Raspberry Pi のローカルタイムです（`timedatectl` で確認・変更）
+# * アプリのログ（logs/log-YYYYMMDD.log）もローカルタイムで記録されます
+# * 実行が重なっても run-check.sh が flock で弾くので、間隔を詰めても二重に走りません

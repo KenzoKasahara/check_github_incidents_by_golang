@@ -14,7 +14,7 @@
 
 ## ディレクトリ構成
 
-```
+```text
 .
 ├── .gitignore
 ├── .env.example                   # .env のひな形（.env は追跡対象外）
@@ -33,12 +33,15 @@
 │       ├── state.go               # 通知済みインシデントの記録
 │       └── *_test.go              # 各処理のテスト
 ├── docs/                          # ドキュメント（README.md が目次）
+├── scripts/                       # 定期実行まわり（詳細は docs/cron.md）
+│   ├── run-check.sh               # cron から呼ばれる実行ラッパー
+│   ├── install-cron.sh            # crontab への登録・変更・削除
+│   └── crontab.example            # crontab の記述例
+├── check-github-incidents         # ビルド生成物（追跡対象外）
 ├── notice_message.json            # 出力ファイル（実行時に上書き生成）
 ├── notified_incidents.json        # 通知済みの記録（実行時に生成 / 追跡対象外）
-├── logs/                          # 日付別ログ（実行時に自動作成）
-├── testdata/                      # サンプルレスポンス（go のビルド対象外）
-│   ├── all_incidents.json         # 全インシデント
-│   └── unresolved_incidents.json  # 未解決インシデント
-└── shell/
-    └── go_command.sh              # 実行用スクリプト
+├── logs/                          # 日付別ログと cron のログ（実行時に自動作成）
+└── testdata/                      # サンプルレスポンス（go のビルド対象外）
+    ├── all_incidents.json         # 全インシデント
+    └── unresolved_incidents.json  # 未解決インシデント
 ```
