@@ -12,6 +12,17 @@ import (
 	"strings"
 )
 
+const (
+	ENV_DISCORD_WEBHOOK_URL string = "DISCORD_WEBHOOK_URL"
+	ENV_SLACK_WEBHOOK_URL   string = "SLACK_WEBHOOK_URL"
+
+	// MAX_NOTIFY_INCIDENTS は 1 回の通知に含めるインシデントの上限 (Discord の embeds 上限に合わせる)。
+	MAX_NOTIFY_INCIDENTS int = 10
+
+	// WEBHOOK_ERROR_BODY_LIMIT はエラー時に読み取るレスポンスボディの上限バイト数。
+	WEBHOOK_ERROR_BODY_LIMIT int64 = 512
+)
+
 // Notifier は通知先ごとの送信内容を表す。
 type Notifier interface {
 	// Name は通知先の名称を返す (ログ出力用)。

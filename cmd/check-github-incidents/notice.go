@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const NOTICE_FILE_PATH string = "./notice_message.json"
+
 // NoticeMessage は notice_message.json に出力する通知メッセージ 1 件分を表す。
 type NoticeMessage struct {
 	IncidentID         string   `json:"id"`

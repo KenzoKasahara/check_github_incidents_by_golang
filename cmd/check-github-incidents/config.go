@@ -10,36 +10,14 @@ import (
 )
 
 const (
-	GITHUB_COMMON_URL           string = "https://www.githubstatus.com"
-	GITHUB_ALL_INCIDENTS        string = "/api/v2/incidents.json"
-	GITHUB_UNRESOLVED_INCIDENTS string = "/api/v2/incidents/unresolved.json"
-
-	SAMPLE_ALL_INCIDENTS        string = "./testdata/all_incidents.json"
-	SAMPLE_UNRESOLVED_INCIDENTS string = "./testdata/unresolved_incidents.json"
-
-	ENV_USE_LOCAL_SAMPLE    string = "USE_LOCAL_SAMPLE"
-	ENV_LOG_RETENTION_DAYS  string = "LOG_RETENTION_DAYS"
-	ENV_DISCORD_WEBHOOK_URL string = "DISCORD_WEBHOOK_URL"
-	ENV_SLACK_WEBHOOK_URL   string = "SLACK_WEBHOOK_URL"
-
-	DOTENV_FILE_PATH         string = "./.env"
-	LOG_FOLDER_PATH          string = "./logs/"
-	NOTICE_FILE_PATH         string = "./notice_message.json"
-	NOTIFIED_STATE_FILE_PATH string = "./notified_incidents.json"
-
-	LOG_FILE_PREFIX      string = "log-"
-	LOG_FILE_EXTENSION   string = ".log"
-	LOG_FILE_DATE_FORMAT string = "20060102"
+	ENV_USE_LOCAL_SAMPLE   string = "USE_LOCAL_SAMPLE"
+	ENV_LOG_RETENTION_DAYS string = "LOG_RETENTION_DAYS"
 
 	// DEFAULT_LOG_RETENTION_DAYS はログの既定の保持日数 (当日を含む)。
 	DEFAULT_LOG_RETENTION_DAYS int = 30
 
-	// MAX_NOTIFY_INCIDENTS は 1 回の通知に含めるインシデントの上限 (Discord の embeds 上限に合わせる)。
-	MAX_NOTIFY_INCIDENTS int = 10
-
-	// WEBHOOK_ERROR_BODY_LIMIT はエラー時に読み取るレスポンスボディの上限バイト数。
-	WEBHOOK_ERROR_BODY_LIMIT int64 = 512
-
+	// HTTP_TIMEOUT は外部への HTTP リクエストのタイムアウト。
+	// Status API の取得と Webhook の送信の両方で用いるため、ここに置いている。
 	HTTP_TIMEOUT time.Duration = 10 * time.Second
 )
 

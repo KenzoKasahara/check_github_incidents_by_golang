@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const NOTIFIED_STATE_FILE_PATH string = "./notified_incidents.json"
+
 // NotifiedState は前回までに通知したインシデントを記録する。
 // キーはインシデント ID、値はそのとき通知した updated_at。
 type NotifiedState struct {

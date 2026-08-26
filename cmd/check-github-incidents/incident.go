@@ -10,6 +10,15 @@ import (
 	"os"
 )
 
+const (
+	GITHUB_COMMON_URL           string = "https://www.githubstatus.com"
+	GITHUB_ALL_INCIDENTS        string = "/api/v2/incidents.json"
+	GITHUB_UNRESOLVED_INCIDENTS string = "/api/v2/incidents/unresolved.json"
+
+	SAMPLE_ALL_INCIDENTS        string = "./testdata/all_incidents.json"
+	SAMPLE_UNRESOLVED_INCIDENTS string = "./testdata/unresolved_incidents.json"
+)
+
 // IncidentPage は Status API のレスポンスに含まれるページ情報を表す。
 type IncidentPage struct {
 	ID       string `json:"id"`

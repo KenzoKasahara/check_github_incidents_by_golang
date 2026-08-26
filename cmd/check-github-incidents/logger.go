@@ -10,6 +10,14 @@ import (
 	"time"
 )
 
+const (
+	LOG_FOLDER_PATH string = "./logs/"
+
+	LOG_FILE_PREFIX      string = "log-"
+	LOG_FILE_EXTENSION   string = ".log"
+	LOG_FILE_DATE_FORMAT string = "20060102"
+)
+
 // LoggingSettings は標準出力とログファイルの両方へログを出力するよう設定する。
 func LoggingSettings(logFile string) {
 	logfile, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)

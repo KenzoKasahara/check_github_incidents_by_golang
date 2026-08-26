@@ -3,7 +3,7 @@
 
 # ビルド生成物
 *.exe
-/check_github_incidents_by_golang
+/check-github-incidents
 
 # テストの生成物
 *.test

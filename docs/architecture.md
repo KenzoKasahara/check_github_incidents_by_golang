@@ -1,0 +1,44 @@
+# 処理の流れとディレクトリ構成
+
+## 処理の流れ
+
+1. `./logs/` フォルダを作成し、`log-YYYYMMDD.log` へログを出力（標準出力にも同時出力）
+2. `.env` を読み込み、環境変数として設定
+3. 保持期間を過ぎたログファイルを削除
+4. データ取得元（実 API / ローカルサンプル）を判定
+5. 未解決インシデント情報を取得（`/api/v2/incidents/unresolved.json`）
+6. 全インシデント情報（過去 50 件）を取得（`/api/v2/incidents.json`）
+7. インシデント ID でそれぞれのデータを比較し、重複するインシデントを抽出
+8. 抽出したインシデント情報を `./notice_message.json` に整形して出力
+9. 前回通知した内容と突合し、未通知・更新されたインシデントのみ Discord / Slack へ通知
+
+## ディレクトリ構成
+
+```
+.
+├── .gitignore
+├── .env.example                   # .env のひな形（.env は追跡対象外）
+├── go.mod
+├── cmd/
+│   └── check-github-incidents/    # フォルダ名がビルドされるバイナリ名になる
+│       ├── main.go                # 起動と全体の流れ
+│       ├── config.go              # コマンドライン引数・設定値の判定
+│       ├── dotenv.go              # .env の読み込み
+│       ├── logger.go              # ログ設定・フォルダ作成・古いログの削除
+│       ├── incident.go            # Status API の型定義・取得処理
+│       ├── notice.go              # インシデントの突合・通知メッセージの出力
+│       ├── notify.go              # 通知の共通処理（Webhook 送信 / dry-run）
+│       ├── discord.go             # Discord 用ペイロード
+│       ├── slack.go               # Slack 用ペイロード
+│       ├── state.go               # 通知済みインシデントの記録
+│       └── *_test.go              # 各処理のテスト
+├── docs/                          # ドキュメント（README.md が目次）
+├── notice_message.json            # 出力ファイル（実行時に上書き生成）
+├── notified_incidents.json        # 通知済みの記録（実行時に生成 / 追跡対象外）
+├── logs/                          # 日付別ログ（実行時に自動作成）
+├── testdata/                      # サンプルレスポンス（go のビルド対象外）
+│   ├── all_incidents.json         # 全インシデント
+│   └── unresolved_incidents.json  # 未解決インシデント
+└── shell/
+    └── go_command.sh              # 実行用スクリプト
+```
