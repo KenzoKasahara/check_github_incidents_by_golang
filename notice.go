@@ -12,6 +12,7 @@ type NoticeMessage struct {
 	IncidentImpact     string   `json:"impact"`
 	IncidentName       string   `json:"name"`
 	IncidentStatus     string   `json:"status"`
+	IncidentShortLink  string   `json:"shortlink"`
 	IncidentComponents []string `json:"components"`
 	IncidentCreatedAt  string   `json:"created_at"`
 	IncidentUpdatedAt  string   `json:"updated_at"`
@@ -35,6 +36,7 @@ func BuildNoticeMessages(historyIncidents HistoryIncidents, unresolvedIncidents 
 				IncidentImpact:     unresolvedIncident.Impact,
 				IncidentName:       unresolvedIncident.Name,
 				IncidentStatus:     unresolvedIncident.Status,
+				IncidentShortLink:  unresolvedIncident.ShortLink,
 				IncidentComponents: AffectedComponentNames(historyIncident.AffectedComponents),
 				IncidentCreatedAt:  unresolvedIncident.CreatedAt,
 				IncidentUpdatedAt:  unresolvedIncident.UpdatedAt,

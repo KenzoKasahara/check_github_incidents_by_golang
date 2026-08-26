@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,10 +17,28 @@ const (
 	SAMPLE_ALL_INCIDENTS        string = "./testdata/all_incidents.json"
 	SAMPLE_UNRESOLVED_INCIDENTS string = "./testdata/unresolved_incidents.json"
 
-	ENV_USE_LOCAL_SAMPLE string = "USE_LOCAL_SAMPLE"
+	ENV_USE_LOCAL_SAMPLE    string = "USE_LOCAL_SAMPLE"
+	ENV_LOG_RETENTION_DAYS  string = "LOG_RETENTION_DAYS"
+	ENV_DISCORD_WEBHOOK_URL string = "DISCORD_WEBHOOK_URL"
+	ENV_SLACK_WEBHOOK_URL   string = "SLACK_WEBHOOK_URL"
 
-	LOG_FOLDER_PATH  string = "./logs/"
-	NOTICE_FILE_PATH string = "./notice_message.json"
+	DOTENV_FILE_PATH         string = "./.env"
+	LOG_FOLDER_PATH          string = "./logs/"
+	NOTICE_FILE_PATH         string = "./notice_message.json"
+	NOTIFIED_STATE_FILE_PATH string = "./notified_incidents.json"
+
+	LOG_FILE_PREFIX      string = "log-"
+	LOG_FILE_EXTENSION   string = ".log"
+	LOG_FILE_DATE_FORMAT string = "20060102"
+
+	// DEFAULT_LOG_RETENTION_DAYS はログの既定の保持日数 (当日を含む)。
+	DEFAULT_LOG_RETENTION_DAYS int = 30
+
+	// MAX_NOTIFY_INCIDENTS は 1 回の通知に含めるインシデントの上限 (Discord の embeds 上限に合わせる)。
+	MAX_NOTIFY_INCIDENTS int = 10
+
+	// WEBHOOK_ERROR_BODY_LIMIT はエラー時に読み取るレスポンスボディの上限バイト数。
+	WEBHOOK_ERROR_BODY_LIMIT int64 = 512
 
 	HTTP_TIMEOUT time.Duration = 10 * time.Second
 )
@@ -30,10 +49,17 @@ type LocalSampleOption struct {
 	Explicit bool // コマンドライン引数で明示的に指定されたか
 }
 
-// ParseLocalSampleFlag はコマンドライン引数を解析する。
+// CommandLineOptions はコマンドライン引数の指定内容を表す。
+type CommandLineOptions struct {
+	LocalSample LocalSampleOption
+	DryRun      bool
+}
+
+// ParseCommandLineOptions はコマンドライン引数を解析する。
 // flag.Parse() を伴うため、main から一度だけ呼び出すこと。
-func ParseLocalSampleFlag() LocalSampleOption {
+func ParseCommandLineOptions() CommandLineOptions {
 	localFlag := flag.Bool("local", false, "ローカルのサンプルファイル(./testdata/*.json)を使用する")
+	dryRunFlag := flag.Bool("dry-run", false, "通知を送信せず、送信内容をログに出力する")
 	flag.Parse()
 
 	explicit := false
@@ -43,7 +69,10 @@ func ParseLocalSampleFlag() LocalSampleOption {
 		}
 	})
 
-	return LocalSampleOption{Value: *localFlag, Explicit: explicit}
+	return CommandLineOptions{
+		LocalSample: LocalSampleOption{Value: *localFlag, Explicit: explicit},
+		DryRun:      *dryRunFlag,
+	}
 }
 
 // UseLocalSample はローカルのサンプルファイルを使用するかどうかを判定する。
@@ -65,4 +94,21 @@ func UseLocalSample(option LocalSampleOption) bool {
 	}
 
 	return false
+}
+
+// LogRetentionDays はログの保持日数を環境変数 (LOG_RETENTION_DAYS) から取得する。
+// 未設定または不正な値の場合は既定値を用いる。0 を指定した場合は削除しない。
+func LogRetentionDays() int {
+	env, ok := os.LookupEnv(ENV_LOG_RETENTION_DAYS)
+	if !ok {
+		return DEFAULT_LOG_RETENTION_DAYS
+	}
+
+	days, err := strconv.Atoi(strings.TrimSpace(env))
+	if err != nil || days < 0 {
+		log.Printf("%v %v\n", "[WARNING]", ENV_LOG_RETENTION_DAYS+" の値が不正なため既定値を使用します: "+env)
+		return DEFAULT_LOG_RETENTION_DAYS
+	}
+
+	return days
 }

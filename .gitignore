@@ -1,3 +1,6 @@
+# 環境変数（Webhook URL などの秘匿情報を含むため追跡しない）
+.env
+
 # ビルド生成物
 *.exe
 /check_github_incidents_by_golang
@@ -5,6 +8,9 @@
 # テストの生成物
 *.test
 *.out
+
+# 実行時に生成される通知済み状態
+/notified_incidents.json
 
 # 実行時に生成されるログ
 /logs/*.log
