@@ -15,7 +15,7 @@
 ## 実行方法
 
 ```sh
-go run main.go
+go run .
 ```
 
 もしくは、
@@ -27,7 +27,7 @@ sh shell/go_command.sh
 利用できるオプションは `-h` で確認できます。
 
 ```sh
-go run main.go -h
+go run . -h
 ```
 
 - Go 1.18 以降を想定（標準ライブラリのみ使用。外部依存パッケージはありません）
@@ -36,28 +36,28 @@ go run main.go -h
 ## データ取得元の切り替え
 
 既定では実 API（GitHub Status）から取得します。
-オフラインでの動作確認用に、`./sample/` 配下のサンプルファイルへ切り替えられます。
+オフラインでの動作確認用に、`./testdata/` 配下のサンプルファイルへ切り替えられます。
 
 | 取得元 | 未解決インシデント | 全インシデント |
 | --- | --- | --- |
 | 実 API（既定） | `https://www.githubstatus.com/api/v2/incidents/unresolved.json` | `https://www.githubstatus.com/api/v2/incidents.json` |
-| ローカルサンプル | `./sample/unresolved_incidents.json` | `./sample/all_incidents.json` |
+| ローカルサンプル | `./testdata/unresolved_incidents.json` | `./testdata/all_incidents.json` |
 
 切り替えは、コマンドライン引数または環境変数で行います。
 優先順位は **コマンドライン引数 > 環境変数 > 既定値（実 API）** です。
 
 ```sh
 # 実 API から取得（既定）
-go run main.go
+go run .
 
 # ローカルのサンプルファイルから取得
-go run main.go -local
+go run . -local
 
 # 環境変数での指定（true/false, 1/0, yes/no などを許容）
-USE_LOCAL_SAMPLE=true go run main.go
+USE_LOCAL_SAMPLE=true go run .
 
 # 環境変数より引数が優先される（この場合は実 API を参照）
-USE_LOCAL_SAMPLE=true go run main.go -local=false
+USE_LOCAL_SAMPLE=true go run . -local=false
 ```
 
 環境変数に真偽値として解釈できない値を指定した場合は、警告を出して既定値（実 API）で動作します。
@@ -76,6 +76,7 @@ USE_LOCAL_SAMPLE=true go run main.go -local=false
 | `impact` | 影響度（`none` / `minor` / `major` / `critical`） |
 | `name` | インシデント名 |
 | `status` | ステータス（`investigating` / `identified` / `monitoring` など） |
+| `components` | 影響を受けたコンポーネント名の配列 |
 | `created_at` | 発生日時 |
 | `updated_at` | 最終更新日時 |
 
@@ -88,6 +89,10 @@ USE_LOCAL_SAMPLE=true go run main.go -local=false
         "impact": "critical",
         "name": "Unplanned Database Outage",
         "status": "identified",
+        "components": [
+            "Pages",
+            "Actions"
+        ],
         "created_at": "2014-05-14T14:22:39.441-06:00",
         "updated_at": "2014-05-14T14:35:21.711-06:00"
     }
@@ -105,23 +110,28 @@ USE_LOCAL_SAMPLE=true go run main.go -local=false
 
 ```
 .
-├── main.go                        # 本体
+├── .gitignore
+├── go.mod
+├── main.go                        # 起動と全体の流れ
+├── config.go                      # 定数・データ取得元の判定（引数 / 環境変数）
+├── logger.go                      # ログ設定・フォルダ作成
+├── incident.go                    # Status API の型定義・取得処理
+├── notice.go                      # インシデントの突合・通知メッセージの出力
+├── notice_test.go                 # 突合処理と取得元判定のテスト
 ├── notice_message.json            # 出力ファイル（実行時に上書き生成）
 ├── logs/                          # 日付別ログ（実行時に自動作成）
-├── sample/
-│   ├── all_incidents.json         # 全インシデントのサンプルレスポンス
-│   └── unresolved_incidents.json  # 未解決インシデントのサンプルレスポンス
+├── testdata/                      # サンプルレスポンス（go のビルド対象外）
+│   ├── all_incidents.json         # 全インシデント
+│   └── unresolved_incidents.json  # 未解決インシデント
 └── shell/
     └── go_command.sh              # 実行用スクリプト
 ```
 
-## 既知の課題 / TODO
+## テスト
 
-- 全インシデント情報から取得したコンポーネント情報（`affected_components`）は、
-  通知メッセージ組み立て時に文字列化しているものの `NoticeMessage` 構造体に
-  対応するフィールドがないため、`notice_message.json` には出力されません。
-  加えて、参照先が `historyIncidents.Incidents[0]` 固定になっており、
-  一致したインシデントのコンポーネントを参照していません。
-- 通知メッセージを文字列連結で JSON 組み立てしてから `json.Unmarshal` しているため、
-  インシデント名にダブルクォートが含まれる場合に解析エラーとなります。
-  構造体へ直接代入する方式への変更が望ましいです。
+```sh
+go test ./...
+```
+
+インシデントの突合処理（`BuildNoticeMessages`）とデータ取得元の判定（`UseLocalSample`）を
+対象にしています。ネットワークアクセスは行いません。
