@@ -45,6 +45,19 @@ func main() {
 		log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("保持期間 %v 日を過ぎたログを削除しました。(%v 件)", retentionDays, deleted))
 	}
 
+	// テスト通知 (-test-notify) はここで完結させ、インシデントの取得へは進まない
+	if options.TestNotify {
+		notifyErr := RunTestNotify(now, options.DryRun)
+
+		log.Printf("%v %v\n", "[INFO]", "【end process】")
+		log.Println(repeatedStars)
+
+		if notifyErr != nil {
+			log.Fatalln("[ERROR]", notifyErr)
+		}
+		return
+	}
+
 	// データの取得元を判定 (コマンドライン引数 > 環境変数 > 既定値)
 	useLocal := UseLocalSample(options.LocalSample)
 	if useLocal {
@@ -74,19 +87,22 @@ func main() {
 	}
 	log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("メッセージをファイルに書き込みました。(%v 件)", len(noticeMessages)))
 
-	// 前回通知した内容と突合し、未通知および更新されたインシデントだけに絞り込む
+	// 前回通知した内容と突合し、新規・更新・復旧したインシデントだけに絞り込む
 	notifiedState, err := LoadNotifiedState(NOTIFIED_STATE_FILE_PATH)
 	if err != nil {
 		log.Fatalln("[ERROR]", err)
 	}
-	unnotified := notifiedState.Unnotified(noticeMessages)
-	if skipped := len(noticeMessages) - len(unnotified); skipped > 0 {
-		log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("前回から更新の無いインシデントを通知対象から除外しました。(%v 件)", skipped))
+	changes := notifiedState.Diff(noticeMessages)
+	if len(changes) == 0 {
+		log.Printf("%v %v\n", "[INFO]", "前回から変化がありません。")
+	} else {
+		newCount, updatedCount, resolvedCount := CountChanges(changes)
+		log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("前回からの変化を検知しました。(新規 %v 件 / 更新 %v 件 / 復旧 %v 件)", newCount, updatedCount, resolvedCount))
 	}
 
 	// Discord / Slack へ通知
 	notifiers := NewNotifiers()
-	notifyErr := SendNotifications(notifiers, unnotified, options.DryRun)
+	notifyErr := SendNotifications(notifiers, changes, options.DryRun)
 
 	// 通知済み状態を更新する。
 	// 送信に失敗した場合は次回に再通知させるため更新しない。

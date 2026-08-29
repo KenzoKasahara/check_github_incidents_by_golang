@@ -31,6 +31,37 @@ func sampleNoticeMessages(count int) []NoticeMessage {
 	return noticeMessages
 }
 
+// sampleChanges は新規発生として検知したインシデントの変化を組み立てる。
+func sampleChanges(count int) []IncidentChange {
+	changes := []IncidentChange{}
+	for _, noticeMessage := range sampleNoticeMessages(count) {
+		changes = append(changes, IncidentChange{
+			Type:     CHANGE_NEW,
+			ID:       noticeMessage.IncidentID,
+			Name:     noticeMessage.IncidentName,
+			Incident: &noticeMessage,
+		})
+	}
+
+	return changes
+}
+
+// sampleResolvedChange は復旧として検知したインシデントの変化を組み立てる。
+func sampleResolvedChange() IncidentChange {
+	previous := NotifiedIncident{
+		Name:      "Incident 0",
+		Status:    "monitoring",
+		UpdatedAt: "2026-08-26T10:30:00.000+09:00",
+	}
+
+	return IncidentChange{
+		Type:     CHANGE_RESOLVED,
+		ID:       "incident-0",
+		Name:     previous.Name,
+		Previous: &previous,
+	}
+}
+
 func TestNewNotifiers(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -62,7 +93,7 @@ func TestNewNotifiers(t *testing.T) {
 }
 
 func TestDiscordBuildPayload(t *testing.T) {
-	payload := DiscordNotifier{Webhook: "https://discord.example/webhook"}.BuildPayload(sampleNoticeMessages(1))
+	payload := DiscordNotifier{Webhook: "https://discord.example/webhook"}.BuildPayload(sampleChanges(1))
 
 	discordPayload, ok := payload.(DiscordPayload)
 	if !ok {
@@ -73,8 +104,8 @@ func TestDiscordBuildPayload(t *testing.T) {
 	}
 
 	embed := discordPayload.Embeds[0]
-	if embed.Title != "Incident 0" {
-		t.Errorf("title = %v, want Incident 0", embed.Title)
+	if embed.Title != "🚨 新しいインシデント: Incident 0" {
+		t.Errorf("title = %v", embed.Title)
 	}
 	if embed.URL != "https://stspg.io/example" {
 		t.Errorf("url = %v", embed.URL)
@@ -82,13 +113,36 @@ func TestDiscordBuildPayload(t *testing.T) {
 	if embed.Color != 0xD32F2F {
 		t.Errorf("color = %v, want %v", embed.Color, 0xD32F2F)
 	}
-	if !strings.Contains(discordPayload.Content, "1 件") {
+	if !strings.Contains(discordPayload.Content, "新規 1 件") {
 		t.Errorf("content = %v", discordPayload.Content)
 	}
 }
 
+// 復旧の通知が、未解決一覧から消えた後でも前回の記録から組み立てられることを確認する。
+func TestDiscordBuildPayloadResolved(t *testing.T) {
+	payload := DiscordNotifier{}.BuildPayload([]IncidentChange{sampleResolvedChange()}).(DiscordPayload)
+
+	if len(payload.Embeds) != 1 {
+		t.Fatalf("embeds = %v 件, want 1", len(payload.Embeds))
+	}
+
+	embed := payload.Embeds[0]
+	if embed.Title != "✅ 復旧しました: Incident 0" {
+		t.Errorf("title = %v", embed.Title)
+	}
+	if embed.Color != DISCORD_RESOLVED_COLOR {
+		t.Errorf("color = %v, want %v", embed.Color, DISCORD_RESOLVED_COLOR)
+	}
+	if len(embed.Fields) != 2 || embed.Fields[0].Value != "monitoring" {
+		t.Errorf("fields = %v", embed.Fields)
+	}
+	if !strings.Contains(payload.Content, "復旧 1 件") {
+		t.Errorf("content = %v", payload.Content)
+	}
+}
+
 func TestSlackBuildPayload(t *testing.T) {
-	payload := SlackNotifier{Webhook: "https://slack.example/webhook"}.BuildPayload(sampleNoticeMessages(1))
+	payload := SlackNotifier{Webhook: "https://slack.example/webhook"}.BuildPayload(sampleChanges(1))
 
 	slackPayload, ok := payload.(SlackPayload)
 	if !ok {
@@ -99,8 +153,8 @@ func TestSlackBuildPayload(t *testing.T) {
 	}
 
 	attachment := slackPayload.Attachments[0]
-	if attachment.Title != "Incident 0" {
-		t.Errorf("title = %v, want Incident 0", attachment.Title)
+	if attachment.Title != ":rotating_light: 新しいインシデント: Incident 0" {
+		t.Errorf("title = %v", attachment.Title)
 	}
 	if attachment.TitleLink != "https://stspg.io/example" {
 		t.Errorf("title_link = %v", attachment.TitleLink)
@@ -110,21 +164,79 @@ func TestSlackBuildPayload(t *testing.T) {
 	}
 }
 
+// 復旧の通知が、未解決一覧から消えた後でも前回の記録から組み立てられることを確認する。
+func TestSlackBuildPayloadResolved(t *testing.T) {
+	payload := SlackNotifier{}.BuildPayload([]IncidentChange{sampleResolvedChange()}).(SlackPayload)
+
+	if len(payload.Attachments) != 1 {
+		t.Fatalf("attachments = %v 件, want 1", len(payload.Attachments))
+	}
+
+	attachment := payload.Attachments[0]
+	if attachment.Title != ":white_check_mark: 復旧しました: Incident 0" {
+		t.Errorf("title = %v", attachment.Title)
+	}
+	if attachment.Color != SLACK_RESOLVED_COLOR {
+		t.Errorf("color = %v, want %v", attachment.Color, SLACK_RESOLVED_COLOR)
+	}
+	if len(attachment.Fields) != 2 || attachment.Fields[0].Value != "monitoring" {
+		t.Errorf("fields = %v", attachment.Fields)
+	}
+}
+
 // Discord の embeds 上限を超えないこと、超過分が見出しに示されることを確認する。
 func TestBuildPayloadLimitsIncidents(t *testing.T) {
-	noticeMessages := sampleNoticeMessages(MAX_NOTIFY_INCIDENTS + 3)
+	changes := sampleChanges(MAX_NOTIFY_INCIDENTS + 3)
 
-	discordPayload := DiscordNotifier{}.BuildPayload(noticeMessages).(DiscordPayload)
+	discordPayload := DiscordNotifier{}.BuildPayload(changes).(DiscordPayload)
 	if len(discordPayload.Embeds) != MAX_NOTIFY_INCIDENTS {
 		t.Errorf("embeds = %v 件, want %v", len(discordPayload.Embeds), MAX_NOTIFY_INCIDENTS)
 	}
 	if !strings.Contains(discordPayload.Content, "他 3 件") {
 		t.Errorf("content = %v", discordPayload.Content)
 	}
+	// 表示を省いた分も内訳の件数には含める
+	if !strings.Contains(discordPayload.Content, fmt.Sprintf("新規 %v 件", MAX_NOTIFY_INCIDENTS+3)) {
+		t.Errorf("content = %v", discordPayload.Content)
+	}
 
-	slackPayload := SlackNotifier{}.BuildPayload(noticeMessages).(SlackPayload)
+	slackPayload := SlackNotifier{}.BuildPayload(changes).(SlackPayload)
 	if len(slackPayload.Attachments) != MAX_NOTIFY_INCIDENTS {
 		t.Errorf("attachments = %v 件, want %v", len(slackPayload.Attachments), MAX_NOTIFY_INCIDENTS)
+	}
+}
+
+// 通知先ごとに絵文字の表記が使い分けられていることを確認する。
+func TestChangeTitle(t *testing.T) {
+	change := IncidentChange{Type: CHANGE_UPDATED, Name: "Incident 0"}
+
+	if got := ChangeTitle(DiscordChangeLabel(change.Type), change); got != "🔄 状況が更新されました: Incident 0" {
+		t.Errorf("Discord の見出し = %v", got)
+	}
+	if got := ChangeTitle(SlackChangeLabel(change.Type), change); got != ":arrows_counterclockwise: 状況が更新されました: Incident 0" {
+		t.Errorf("Slack の見出し = %v", got)
+	}
+	// ラベルが無いときはインシデント名だけにする
+	if got := ChangeTitle("", change); got != "Incident 0" {
+		t.Errorf("見出し = %v, want Incident 0", got)
+	}
+}
+
+func TestNotificationSummary(t *testing.T) {
+	changes := []IncidentChange{
+		{Type: CHANGE_NEW},
+		{Type: CHANGE_UPDATED},
+		{Type: CHANGE_RESOLVED},
+		{Type: CHANGE_RESOLVED},
+	}
+
+	got := NotificationSummary(changes, 0)
+	if !strings.Contains(got, "新規 1 件 / 更新 1 件 / 復旧 2 件") {
+		t.Errorf("summary = %v", got)
+	}
+	// 変化が無いものは内訳に出さない
+	if got := NotificationSummary([]IncidentChange{{Type: CHANGE_RESOLVED}}, 0); strings.Contains(got, "新規") {
+		t.Errorf("summary = %v", got)
 	}
 }
 
@@ -148,7 +260,7 @@ func TestPostWebhook(t *testing.T) {
 	}))
 	defer server.Close()
 
-	payload := DiscordNotifier{}.BuildPayload(sampleNoticeMessages(1))
+	payload := DiscordNotifier{}.BuildPayload(sampleChanges(1))
 	if err := PostWebhook(server.URL, payload); err != nil {
 		t.Fatalf("PostWebhook() error = %v", err)
 	}
@@ -203,12 +315,12 @@ func TestRedactURL(t *testing.T) {
 
 func TestSendNotificationsSkips(t *testing.T) {
 	// 通知先が無い場合
-	if err := SendNotifications([]Notifier{}, sampleNoticeMessages(1), false); err != nil {
+	if err := SendNotifications([]Notifier{}, sampleChanges(1), false); err != nil {
 		t.Errorf("通知先が無い場合はエラーにしないこと: %v", err)
 	}
 	// インシデントが 0 件の場合は送信しない (送信先が不正でもエラーにならないことで確認する)
 	notifiers := []Notifier{DiscordNotifier{Webhook: "http://127.0.0.1:1/unreachable"}}
-	if err := SendNotifications(notifiers, []NoticeMessage{}, false); err != nil {
+	if err := SendNotifications(notifiers, []IncidentChange{}, false); err != nil {
 		t.Errorf("インシデントが 0 件の場合はエラーにしないこと: %v", err)
 	}
 }
@@ -227,7 +339,7 @@ func TestSendNotificationsContinuesOnFailure(t *testing.T) {
 		SlackNotifier{Webhook: server.URL},
 	}
 
-	err := SendNotifications(notifiers, sampleNoticeMessages(1), false)
+	err := SendNotifications(notifiers, sampleChanges(1), false)
 	if err == nil {
 		t.Fatal("失敗した通知先がある場合はエラーを返すこと")
 	}
@@ -253,7 +365,7 @@ func TestSendNotificationsDryRun(t *testing.T) {
 		SlackNotifier{Webhook: server.URL},
 	}
 
-	if err := SendNotifications(notifiers, sampleNoticeMessages(1), true); err != nil {
+	if err := SendNotifications(notifiers, sampleChanges(1), true); err != nil {
 		t.Fatalf("SendNotifications() error = %v", err)
 	}
 	if received != 0 {
@@ -274,7 +386,7 @@ func TestLogPayloadDoesNotLeakURL(t *testing.T) {
 		log.SetFlags(originalFlags)
 	})
 
-	if err := LogPayload(DiscordNotifier{Webhook: secretURL}, sampleNoticeMessages(1)); err != nil {
+	if err := LogPayload(DiscordNotifier{Webhook: secretURL}, sampleChanges(1)); err != nil {
 		t.Fatalf("LogPayload() error = %v", err)
 	}
 

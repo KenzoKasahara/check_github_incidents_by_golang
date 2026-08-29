@@ -10,7 +10,7 @@
 6. 全インシデント情報（過去 50 件）を取得（`/api/v2/incidents.json`）
 7. インシデント ID でそれぞれのデータを比較し、重複するインシデントを抽出
 8. 抽出したインシデント情報を `./notice_message.json` に整形して出力
-9. 前回通知した内容と突合し、未通知・更新されたインシデントのみ Discord / Slack へ通知
+9. 前回通知した内容と突合し、新規・更新・復旧したインシデントのみ Discord / Slack へ通知
 
 ## ディレクトリ構成
 
@@ -28,9 +28,10 @@
 │       ├── incident.go            # Status API の型定義・取得処理
 │       ├── notice.go              # インシデントの突合・通知メッセージの出力
 │       ├── notify.go              # 通知の共通処理（Webhook 送信 / dry-run）
+│       ├── testnotify.go          # テスト通知（-test-notify）のサンプルと送信
 │       ├── discord.go             # Discord 用ペイロード
 │       ├── slack.go               # Slack 用ペイロード
-│       ├── state.go               # 通知済みインシデントの記録
+│       ├── state.go               # 通知済みインシデントの記録・前回との差分検知
 │       └── *_test.go              # 各処理のテスト
 ├── docs/                          # ドキュメント（README.md が目次）
 ├── scripts/                       # 定期実行まわり（詳細は docs/cron.md）

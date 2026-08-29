@@ -31,6 +31,7 @@ type LocalSampleOption struct {
 type CommandLineOptions struct {
 	LocalSample LocalSampleOption
 	DryRun      bool
+	TestNotify  bool
 }
 
 // ParseCommandLineOptions はコマンドライン引数を解析する。
@@ -38,6 +39,7 @@ type CommandLineOptions struct {
 func ParseCommandLineOptions() CommandLineOptions {
 	localFlag := flag.Bool("local", false, "ローカルのサンプルファイル(./testdata/*.json)を使用する")
 	dryRunFlag := flag.Bool("dry-run", false, "通知を送信せず、送信内容をログに出力する")
+	testNotifyFlag := flag.Bool("test-notify", false, "サンプルのインシデント(新規/更新/復旧)を通知先へ送る。記録ファイルと出力ファイルは更新しない")
 	flag.Parse()
 
 	explicit := false
@@ -50,6 +52,7 @@ func ParseCommandLineOptions() CommandLineOptions {
 	return CommandLineOptions{
 		LocalSample: LocalSampleOption{Value: *localFlag, Explicit: explicit},
 		DryRun:      *dryRunFlag,
+		TestNotify:  *testNotifyFlag,
 	}
 }
 
