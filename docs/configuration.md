@@ -57,4 +57,8 @@ USE_LOCAL_SAMPLE=true go run ./cmd/check-github-incidents -local=false
 
 真偽値として解釈できない値を指定した場合は、警告を出して既定値（実 API）で動作します。
 
+サンプルを参照している間は `notified_incidents.json` を更新しません。
+サンプルの日付は実 API とかけ離れているため、記録を残すと次の実 API 実行で
+過去のインシデントが一斉に復旧として通知されてしまうためです。
+
 なお、API へのリクエストには 10 秒のタイムアウトを設定しています。

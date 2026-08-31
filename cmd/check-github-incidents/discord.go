@@ -20,10 +20,12 @@ type DiscordPayload struct {
 }
 
 type DiscordEmbed struct {
-	Title  string              `json:"title"`
-	URL    string              `json:"url,omitempty"`
-	Color  int                 `json:"color"`
-	Fields []DiscordEmbedField `json:"fields"`
+	Title string `json:"title"`
+	URL   string `json:"url,omitempty"`
+	// Description は GitHub が投稿したコメント本文。無いときは項目ごと省く
+	Description string              `json:"description,omitempty"`
+	Color       int                 `json:"color"`
+	Fields      []DiscordEmbedField `json:"fields"`
 }
 
 type DiscordEmbedField struct {
@@ -67,22 +69,9 @@ func (notifier DiscordNotifier) BuildPayload(changes []IncidentChange) any {
 }
 
 // DiscordChangeEmbed は変化 1 件を embed へ変換する。
-// 復旧したインシデントは未解決一覧から消えており影響度やコンポーネントを取得できないため、
-// 前回通知した時点の記録から組み立てる。
 func DiscordChangeEmbed(change IncidentChange) DiscordEmbed {
 	if change.Type == CHANGE_RESOLVED || change.Incident == nil {
-		embed := DiscordEmbed{
-			Title:  ChangeTitle(DiscordChangeLabel(change.Type), change),
-			Color:  DISCORD_RESOLVED_COLOR,
-			Fields: []DiscordEmbedField{},
-		}
-		if change.Previous != nil {
-			embed.Fields = append(embed.Fields,
-				DiscordEmbedField{Name: "直前のステータス", Value: change.Previous.Status, Inline: true},
-				DiscordEmbedField{Name: "前回の更新", Value: change.Previous.UpdatedAt, Inline: true},
-			)
-		}
-		return embed
+		return DiscordResolvedEmbed(change)
 	}
 
 	incident := change.Incident
@@ -99,6 +88,39 @@ func DiscordChangeEmbed(change IncidentChange) DiscordEmbed {
 			{Name: "最終更新", Value: incident.IncidentUpdatedAt, Inline: true},
 		},
 	}
+}
+
+// DiscordResolvedEmbed は復旧 1 件を embed へ変換する。
+// 復旧したインシデントは未解決一覧から消えるが、過去のインシデント一覧には
+// 解決後の情報が残っているため、そちらから組み立てる。
+// 取得できなかった場合だけ、前回通知した時点の記録で代替する。
+func DiscordResolvedEmbed(change IncidentChange) DiscordEmbed {
+	embed := DiscordEmbed{
+		Title:  ChangeTitle(DiscordChangeLabel(change.Type), change),
+		Color:  DISCORD_RESOLVED_COLOR,
+		Fields: []DiscordEmbedField{},
+	}
+
+	if resolved := change.Resolved; resolved != nil {
+		embed.URL = resolved.ShortLink
+		embed.Description = resolved.Body
+		embed.Fields = append(embed.Fields,
+			DiscordEmbedField{Name: "影響度", Value: resolved.Impact, Inline: true},
+			DiscordEmbedField{Name: "コンポーネント", Value: FormatComponents(resolved.Components), Inline: false},
+			DiscordEmbedField{Name: "発生日時", Value: resolved.CreatedAt, Inline: true},
+			DiscordEmbedField{Name: "復旧日時", Value: resolved.ResolvedAt, Inline: true},
+		)
+		return embed
+	}
+
+	if change.Previous != nil {
+		embed.Fields = append(embed.Fields,
+			DiscordEmbedField{Name: "直前のステータス", Value: change.Previous.Status, Inline: true},
+			DiscordEmbedField{Name: "前回の更新", Value: change.Previous.UpdatedAt, Inline: true},
+		)
+	}
+
+	return embed
 }
 
 // DiscordImpactColor は影響度に対応する embed の色を返す。

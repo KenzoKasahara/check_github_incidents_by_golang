@@ -62,6 +62,7 @@ func main() {
 	useLocal := UseLocalSample(options.LocalSample)
 	if useLocal {
 		log.Printf("%v %v\n", "[INFO]", "data source: local sample files")
+		log.Printf("%v %v\n", "[INFO]", "本番の記録 ("+NOTIFIED_STATE_FILE_PATH+") は更新しません。")
 	} else {
 		log.Printf("%v %v\n", "[INFO]", "data source: "+GITHUB_COMMON_URL)
 	}
@@ -81,6 +82,10 @@ func main() {
 	// 過去のインシデントと未解決のインシデントより、重複するインシデント情報を取得
 	noticeMessages := BuildNoticeMessages(historyIncidents, unresolvedIncidents)
 
+	// 解決済みのインシデントを取得する。
+	// 未解決一覧には残らないため、復旧の判定と通知内容はこちらから組み立てる
+	resolvedDetails := BuildResolvedDetails(historyIncidents)
+
 	// 通知メッセージをファイルに書き込む (通知の有無にかかわらず全件を出力する)
 	if err := WriteNoticeMessages(NOTICE_FILE_PATH, noticeMessages); err != nil {
 		log.Fatalln("[ERROR]", err)
@@ -92,7 +97,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("[ERROR]", err)
 	}
-	changes := notifiedState.Diff(noticeMessages)
+	changes := notifiedState.Diff(noticeMessages, resolvedDetails)
 	if len(changes) == 0 {
 		log.Printf("%v %v\n", "[INFO]", "前回から変化がありません。")
 	} else {
@@ -107,8 +112,10 @@ func main() {
 	// 通知済み状態を更新する。
 	// 送信に失敗した場合は次回に再通知させるため更新しない。
 	// dry-run と通知先未設定のときも、実際には送信していないため更新しない。
-	if notifyErr == nil && !options.DryRun && len(notifiers) > 0 {
-		if err := SaveNotifiedState(NOTIFIED_STATE_FILE_PATH, NewNotifiedState(noticeMessages)); err != nil {
+	// ローカルサンプルは日付が実 API とかけ離れており、記録を残すと
+	// 次の実 API 実行で過去のインシデントが一斉に復旧として飛ぶため更新しない。
+	if notifyErr == nil && !options.DryRun && len(notifiers) > 0 && !useLocal {
+		if err := SaveNotifiedState(NOTIFIED_STATE_FILE_PATH, NewNotifiedState(noticeMessages, CheckedAt(historyIncidents, now))); err != nil {
 			log.Fatalln("[ERROR]", err)
 		}
 	}

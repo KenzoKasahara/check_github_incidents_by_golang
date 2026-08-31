@@ -47,6 +47,7 @@ func sampleChanges(count int) []IncidentChange {
 }
 
 // sampleResolvedChange は復旧として検知したインシデントの変化を組み立てる。
+// 解決後の情報を取得できなかった場合を表すため、Resolved は設定しない。
 func sampleResolvedChange() IncidentChange {
 	previous := NotifiedIncident{
 		Name:      "Incident 0",
@@ -118,8 +119,8 @@ func TestDiscordBuildPayload(t *testing.T) {
 	}
 }
 
-// 復旧の通知が、未解決一覧から消えた後でも前回の記録から組み立てられることを確認する。
-func TestDiscordBuildPayloadResolved(t *testing.T) {
+// 解決後の情報を取得できないときに、前回の記録から通知を組み立てられることを確認する。
+func TestDiscordBuildPayloadResolvedWithoutDetail(t *testing.T) {
 	payload := DiscordNotifier{}.BuildPayload([]IncidentChange{sampleResolvedChange()}).(DiscordPayload)
 
 	if len(payload.Embeds) != 1 {
@@ -164,8 +165,8 @@ func TestSlackBuildPayload(t *testing.T) {
 	}
 }
 
-// 復旧の通知が、未解決一覧から消えた後でも前回の記録から組み立てられることを確認する。
-func TestSlackBuildPayloadResolved(t *testing.T) {
+// 解決後の情報を取得できないときに、前回の記録から通知を組み立てられることを確認する。
+func TestSlackBuildPayloadResolvedWithoutDetail(t *testing.T) {
 	payload := SlackNotifier{}.BuildPayload([]IncidentChange{sampleResolvedChange()}).(SlackPayload)
 
 	if len(payload.Attachments) != 1 {
@@ -396,5 +397,122 @@ func TestLogPayloadDoesNotLeakURL(t *testing.T) {
 	}
 	if !strings.Contains(logged, "Incident 0") {
 		t.Errorf("送信内容が出力されていること: %v", logged)
+	}
+}
+
+// sampleResolvedDetail は過去のインシデント一覧から取得した解決後の情報を組み立てる。
+func sampleResolvedDetail() ResolvedDetail {
+	return ResolvedDetail{
+		Name:       "Incident 0",
+		Impact:     "major",
+		ShortLink:  "https://stspg.io/example",
+		Components: []string{"Actions", "Pages"},
+		CreatedAt:  "2026-08-31T09:15:48.908Z",
+		ResolvedAt: "2026-08-31T09:58:14.157Z",
+		Body:       "This incident has been resolved.",
+	}
+}
+
+// 復旧の通知に、解決後の情報 (リンク・復旧日時・コメント本文) が載ることを確認する。
+func TestDiscordBuildPayloadResolvedWithDetail(t *testing.T) {
+	resolved := sampleResolvedDetail()
+	change := IncidentChange{Type: CHANGE_RESOLVED, ID: "incident-0", Name: resolved.Name, Resolved: &resolved}
+
+	payload := DiscordNotifier{}.BuildPayload([]IncidentChange{change}).(DiscordPayload)
+
+	if len(payload.Embeds) != 1 {
+		t.Fatalf("embeds = %v 件, want 1", len(payload.Embeds))
+	}
+
+	embed := payload.Embeds[0]
+	if embed.Title != "✅ 復旧しました: Incident 0" {
+		t.Errorf("title = %v", embed.Title)
+	}
+	// 復旧しても shortlink は残るため、リンクを付けられる
+	if embed.URL != "https://stspg.io/example" {
+		t.Errorf("url = %v", embed.URL)
+	}
+	if embed.Description != "This incident has been resolved." {
+		t.Errorf("description = %v", embed.Description)
+	}
+	if embed.Color != DISCORD_RESOLVED_COLOR {
+		t.Errorf("color = %v, want %v", embed.Color, DISCORD_RESOLVED_COLOR)
+	}
+
+	values := map[string]string{}
+	for _, field := range embed.Fields {
+		values[field.Name] = field.Value
+	}
+	want := map[string]string{
+		"影響度":     "major",
+		"コンポーネント": "Actions, Pages",
+		"発生日時":    "2026-08-31T09:15:48.908Z",
+		"復旧日時":    "2026-08-31T09:58:14.157Z",
+	}
+	for name, value := range want {
+		if values[name] != value {
+			t.Errorf("%v = %v, want %v", name, values[name], value)
+		}
+	}
+}
+
+// 復旧の通知に、解決後の情報 (リンク・復旧日時・コメント本文) が載ることを確認する。
+func TestSlackBuildPayloadResolvedWithDetail(t *testing.T) {
+	resolved := sampleResolvedDetail()
+	change := IncidentChange{Type: CHANGE_RESOLVED, ID: "incident-0", Name: resolved.Name, Resolved: &resolved}
+
+	payload := SlackNotifier{}.BuildPayload([]IncidentChange{change}).(SlackPayload)
+
+	if len(payload.Attachments) != 1 {
+		t.Fatalf("attachments = %v 件, want 1", len(payload.Attachments))
+	}
+
+	attachment := payload.Attachments[0]
+	if attachment.Title != ":white_check_mark: 復旧しました: Incident 0" {
+		t.Errorf("title = %v", attachment.Title)
+	}
+	if attachment.TitleLink != "https://stspg.io/example" {
+		t.Errorf("title_link = %v", attachment.TitleLink)
+	}
+	if attachment.Text != "This incident has been resolved." {
+		t.Errorf("text = %v", attachment.Text)
+	}
+	if attachment.Color != SLACK_RESOLVED_COLOR {
+		t.Errorf("color = %v, want %v", attachment.Color, SLACK_RESOLVED_COLOR)
+	}
+
+	values := map[string]string{}
+	for _, field := range attachment.Fields {
+		values[field.Title] = field.Value
+	}
+	if values["復旧日時"] != "2026-08-31T09:58:14.157Z" {
+		t.Errorf("復旧日時 = %v", values["復旧日時"])
+	}
+	if values["コンポーネント"] != "Actions, Pages" {
+		t.Errorf("コンポーネント = %v", values["コンポーネント"])
+	}
+}
+
+// 本文が無いときに、通知の項目ごと省かれることを確認する (空欄が並ぶのを避けるため)。
+func TestResolvedPayloadOmitsEmptyBody(t *testing.T) {
+	resolved := sampleResolvedDetail()
+	resolved.Body = ""
+	change := IncidentChange{Type: CHANGE_RESOLVED, ID: "incident-0", Name: resolved.Name, Resolved: &resolved}
+
+	discordJson, err := json.Marshal(DiscordNotifier{}.BuildPayload([]IncidentChange{change}).(DiscordPayload).Embeds[0])
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	if strings.Contains(string(discordJson), "description") {
+		t.Errorf("embed の description が出力されないこと: %v", string(discordJson))
+	}
+
+	// 見出しの text と紛れないよう、attachment だけを取り出して確かめる
+	slackJson, err := json.Marshal(SlackNotifier{}.BuildPayload([]IncidentChange{change}).(SlackPayload).Attachments[0])
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	if strings.Contains(string(slackJson), `"text"`) {
+		t.Errorf("attachment の text が出力されないこと: %v", string(slackJson))
 	}
 }

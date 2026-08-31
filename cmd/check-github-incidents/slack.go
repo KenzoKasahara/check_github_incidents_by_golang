@@ -20,10 +20,12 @@ type SlackPayload struct {
 }
 
 type SlackAttachment struct {
-	Color     string       `json:"color"`
-	Title     string       `json:"title"`
-	TitleLink string       `json:"title_link,omitempty"`
-	Fields    []SlackField `json:"fields"`
+	Color     string `json:"color"`
+	Title     string `json:"title"`
+	TitleLink string `json:"title_link,omitempty"`
+	// Text は GitHub が投稿したコメント本文。無いときは項目ごと省く
+	Text   string       `json:"text,omitempty"`
+	Fields []SlackField `json:"fields"`
 }
 
 type SlackField struct {
@@ -67,22 +69,9 @@ func (notifier SlackNotifier) BuildPayload(changes []IncidentChange) any {
 }
 
 // SlackChangeAttachment は変化 1 件を attachment へ変換する。
-// 復旧したインシデントは未解決一覧から消えており影響度やコンポーネントを取得できないため、
-// 前回通知した時点の記録から組み立てる。
 func SlackChangeAttachment(change IncidentChange) SlackAttachment {
 	if change.Type == CHANGE_RESOLVED || change.Incident == nil {
-		attachment := SlackAttachment{
-			Title:  ChangeTitle(SlackChangeLabel(change.Type), change),
-			Color:  SLACK_RESOLVED_COLOR,
-			Fields: []SlackField{},
-		}
-		if change.Previous != nil {
-			attachment.Fields = append(attachment.Fields,
-				SlackField{Title: "直前のステータス", Value: change.Previous.Status, Short: true},
-				SlackField{Title: "前回の更新", Value: change.Previous.UpdatedAt, Short: true},
-			)
-		}
-		return attachment
+		return SlackResolvedAttachment(change)
 	}
 
 	incident := change.Incident
@@ -99,6 +88,39 @@ func SlackChangeAttachment(change IncidentChange) SlackAttachment {
 			{Title: "最終更新", Value: incident.IncidentUpdatedAt, Short: true},
 		},
 	}
+}
+
+// SlackResolvedAttachment は復旧 1 件を attachment へ変換する。
+// 復旧したインシデントは未解決一覧から消えるが、過去のインシデント一覧には
+// 解決後の情報が残っているため、そちらから組み立てる。
+// 取得できなかった場合だけ、前回通知した時点の記録で代替する。
+func SlackResolvedAttachment(change IncidentChange) SlackAttachment {
+	attachment := SlackAttachment{
+		Title:  ChangeTitle(SlackChangeLabel(change.Type), change),
+		Color:  SLACK_RESOLVED_COLOR,
+		Fields: []SlackField{},
+	}
+
+	if resolved := change.Resolved; resolved != nil {
+		attachment.TitleLink = resolved.ShortLink
+		attachment.Text = resolved.Body
+		attachment.Fields = append(attachment.Fields,
+			SlackField{Title: "影響度", Value: resolved.Impact, Short: true},
+			SlackField{Title: "コンポーネント", Value: FormatComponents(resolved.Components), Short: false},
+			SlackField{Title: "発生日時", Value: resolved.CreatedAt, Short: true},
+			SlackField{Title: "復旧日時", Value: resolved.ResolvedAt, Short: true},
+		)
+		return attachment
+	}
+
+	if change.Previous != nil {
+		attachment.Fields = append(attachment.Fields,
+			SlackField{Title: "直前のステータス", Value: change.Previous.Status, Short: true},
+			SlackField{Title: "前回の更新", Value: change.Previous.UpdatedAt, Short: true},
+		)
+	}
+
+	return attachment
 }
 
 // SlackImpactColor は影響度に対応する attachment の色を返す。

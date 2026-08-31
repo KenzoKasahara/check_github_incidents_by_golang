@@ -11,7 +11,8 @@ const TEST_NOTIFY_NAME_PREFIX string = "[テスト通知] "
 
 // SampleIncidentChanges はテスト通知で送るサンプルの変化を組み立てる。
 // 実際の通知と同じ見た目を確認できるよう、新規・更新・復旧を 1 件ずつ含める。
-// 復旧は未解決一覧から消えた状態を表すため、Incident を持たせず Previous だけを設定する。
+// 復旧は未解決一覧から消えた状態を表すため、Incident を持たせず、
+// 前回の記録 (Previous) と解決後の情報 (Resolved) を設定する。
 func SampleIncidentChanges(now time.Time) []IncidentChange {
 	createdAt := now.Add(-30 * time.Minute).Format(time.RFC3339)
 	updatedAt := now.Format(time.RFC3339)
@@ -36,6 +37,15 @@ func SampleIncidentChanges(now time.Time) []IncidentChange {
 		Status:    "monitoring",
 		UpdatedAt: createdAt,
 	}
+	resolvedDetail := ResolvedDetail{
+		Name:       resolvedPrevious.Name,
+		Impact:     "major",
+		ShortLink:  GITHUB_COMMON_URL,
+		Components: []string{"Actions", "Pages"},
+		CreatedAt:  createdAt,
+		ResolvedAt: updatedAt,
+		Body:       "This incident has been resolved.",
+	}
 
 	return []IncidentChange{
 		{
@@ -54,8 +64,9 @@ func SampleIncidentChanges(now time.Time) []IncidentChange {
 		{
 			Type:     CHANGE_RESOLVED,
 			ID:       "test-notify-resolved",
-			Name:     resolvedPrevious.Name,
+			Name:     resolvedDetail.Name,
 			Previous: &resolvedPrevious,
+			Resolved: &resolvedDetail,
 		},
 	}
 }
