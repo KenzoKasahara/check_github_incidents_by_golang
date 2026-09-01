@@ -221,6 +221,64 @@ func TestChangeTitle(t *testing.T) {
 	if got := ChangeTitle("", change); got != "Incident 0" {
 		t.Errorf("見出し = %v, want Incident 0", got)
 	}
+
+	// 名称を取得できないときは、どの障害か分かるようインシデント ID で代替する
+	noName := IncidentChange{Type: CHANGE_RESOLVED, ID: "abcdef123456"}
+	if got := ChangeTitle("✅ 復旧しました", noName); got != "✅ 復旧しました: abcdef123456" {
+		t.Errorf("見出し = %v", got)
+	}
+}
+
+// 名称を取得できないインシデントでも、通知先が受け付ける中身になることを確認する。
+// Discord は値が空の項目を 400 で弾き、1 つでも混ざると通知全体が失敗する。
+func TestResolvedPayloadHasNoEmptyValues(t *testing.T) {
+	// 旧形式の記録から読み込むと、名称もステータスも空のまま復旧を迎えることがある
+	changes := []IncidentChange{
+		{
+			Type:     CHANGE_RESOLVED,
+			ID:       "abcdef123456",
+			Previous: &NotifiedIncident{},
+		},
+	}
+
+	discord, ok := DiscordNotifier{}.BuildPayload(changes).(DiscordPayload)
+	if !ok {
+		t.Fatal("DiscordPayload が返ること")
+	}
+	if len(discord.Embeds) != 1 {
+		t.Fatalf("embeds = %v 件, want 1", len(discord.Embeds))
+	}
+	// 見出しは名称の代わりにインシデント ID で埋める
+	if discord.Embeds[0].Title != "✅ 復旧しました: abcdef123456" {
+		t.Errorf("見出し = %v", discord.Embeds[0].Title)
+	}
+	for _, field := range discord.Embeds[0].Fields {
+		if field.Value == "" {
+			t.Errorf("Discord の項目 %v の値が空です", field.Name)
+		}
+	}
+
+	slack, ok := SlackNotifier{}.BuildPayload(changes).(SlackPayload)
+	if !ok {
+		t.Fatal("SlackPayload が返ること")
+	}
+	for _, field := range slack.Attachments[0].Fields {
+		if field.Value == "" {
+			t.Errorf("Slack の項目 %v の値が空です", field.Title)
+		}
+	}
+}
+
+func TestFieldValue(t *testing.T) {
+	if got := FieldValue("major"); got != "major" {
+		t.Errorf("FieldValue(major) = %v", got)
+	}
+	if got := FieldValue("   "); got != "-" {
+		t.Errorf("FieldValue(空白) = %v, want -", got)
+	}
+	if got := FieldValue(""); got != "-" {
+		t.Errorf("FieldValue(空) = %v, want -", got)
+	}
 }
 
 func TestNotificationSummary(t *testing.T) {

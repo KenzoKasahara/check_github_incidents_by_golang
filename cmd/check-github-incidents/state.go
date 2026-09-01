@@ -39,7 +39,13 @@ type NotifiedState struct {
 	// 未解決の状態を一度も観測できなかったインシデントの復旧を、
 	// 過去の分までさかのぼって通知してしまわないための下限として使う。
 	// 実行するマシンの時計のずれに影響されないよう、GitHub 側の時刻を記録する。
+	// 一度進めた時点は巻き戻さない (CheckedAt を参照)。
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
+	// ResolvedNotified は復旧を通知済みのインシデント。キーはインシデント ID、値は復旧日時。
+	// 復旧の判定を公式の status に任せる以上、「記録から消えたこと」では二重通知を防げないため、
+	// 通知した復旧をここに残して次回以降の対象から外す。
+	// 判定に影響しなくなったものは保存時に取り除くので、際限なく増えることはない。
+	ResolvedNotified map[string]string `json:"resolved_notified,omitempty"`
 }
 
 // IncidentChange は前回の通知内容と比べて変化したインシデント 1 件分を表す。
@@ -62,7 +68,7 @@ type IncidentChange struct {
 // LoadNotifiedState は通知済み状態をファイルから読み込む。
 // ファイルが存在しない場合は空の状態を返す (初回実行時)。
 func LoadNotifiedState(filePath string) (NotifiedState, error) {
-	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
+	state := NotifiedState{Incidents: map[string]NotifiedIncident{}, ResolvedNotified: map[string]string{}}
 
 	jsonData, err := os.ReadFile(filePath)
 	if err != nil {
@@ -77,12 +83,15 @@ func LoadNotifiedState(filePath string) (NotifiedState, error) {
 		// 読めなければ通知が全件やり直しになるだけで済むが、いきなり失敗させると定期実行が止まってしまう。
 		legacy, legacyErr := parseLegacyNotifiedState(jsonData)
 		if legacyErr != nil {
-			return NotifiedState{Incidents: map[string]NotifiedIncident{}}, fmt.Errorf("JSON の解析に失敗しました (%v): %w", filePath, err)
+			return NotifiedState{Incidents: map[string]NotifiedIncident{}, ResolvedNotified: map[string]string{}}, fmt.Errorf("JSON の解析に失敗しました (%v): %w", filePath, err)
 		}
 		return legacy, nil
 	}
 	if state.Incidents == nil {
 		state.Incidents = map[string]NotifiedIncident{}
+	}
+	if state.ResolvedNotified == nil {
+		state.ResolvedNotified = map[string]string{}
 	}
 
 	return state, nil
@@ -98,7 +107,7 @@ func parseLegacyNotifiedState(jsonData []byte) (NotifiedState, error) {
 		return NotifiedState{}, err
 	}
 
-	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
+	state := NotifiedState{Incidents: map[string]NotifiedIncident{}, ResolvedNotified: map[string]string{}}
 	for id, updatedAt := range legacy.Incidents {
 		state.Incidents[id] = NotifiedIncident{UpdatedAt: updatedAt}
 	}
@@ -165,29 +174,43 @@ func (state NotifiedState) Diff(noticeMessages []NoticeMessage, resolvedDetails 
 }
 
 // resolvedIDs は復旧として通知するインシデントの ID を返す。
+// 判定の主軸は公式の過去のインシデント一覧 (/api/v2/incidents.json) が返す status であり、
+// 記録の連続性には依存しない。記録が失われても、公式が解決済みとしていれば復旧を通知できる。
 // currentIDs には今回の未解決一覧にあるインシデントの ID を渡すこと。
 func (state NotifiedState) resolvedIDs(currentIDs map[string]bool, resolvedDetails map[string]ResolvedDetail) []string {
 	ids := []string{}
 
-	// 前回の記録にあり、今回の未解決一覧から消えたもの
-	for id := range state.Incidents {
-		if !currentIDs[id] {
-			ids = append(ids, id)
+	// 公式が解決済み (resolved / postmortem) としているもの
+	for id, detail := range resolvedDetails {
+		// 未解決一覧にも残っている間はまだ収束していないとみなし、次回以降に回す
+		if currentIDs[id] {
+			continue
 		}
+		if _, notified := state.ResolvedNotified[id]; notified {
+			continue
+		}
+
+		// 未解決の状態を観測できていたものは、いつ解決したかに関わらず通知する。
+		// 観測できていないものは、過去 50 件に残る古い障害がまとめて飛ばないよう、
+		// 前回の確認時点より後に解決したものだけを通知する
+		if _, recorded := state.Incidents[id]; !recorded && !state.isNewlyResolved(detail) {
+			continue
+		}
+
+		ids = append(ids, id)
 	}
 
-	// 未解決の状態を観測しないまま解決したもの。
-	// 実行間隔より短い障害や、停止していた間に始まって終わった障害は
-	// 消えたことでは気づけないため、解決済みかどうかを直接見る
-	for id, detail := range resolvedDetails {
+	// 記録にあるのに、未解決一覧にも解決済み一覧にも現れないもの。
+	// 過去 50 件から漏れるほど長く続いたインシデントがこれにあたる
+	for id := range state.Incidents {
 		if currentIDs[id] {
 			continue
 		}
 		// 上で拾い済み
-		if _, recorded := state.Incidents[id]; recorded {
+		if _, ok := resolvedDetails[id]; ok {
 			continue
 		}
-		if !state.isNewlyResolved(detail) {
+		if _, notified := state.ResolvedNotified[id]; notified {
 			continue
 		}
 		ids = append(ids, id)
@@ -234,11 +257,12 @@ func CountChanges(changes []IncidentChange) (newCount, updatedCount, resolvedCou
 	return newCount, updatedCount, resolvedCount
 }
 
-// NewNotifiedState は現在のインシデントから通知済み状態を組み立てる。
+// NewNotifiedState は今回の実行結果から、次回へ引き継ぐ通知済み状態を組み立てる。
 // 解決済みとなり未解決一覧から消えたインシデントは引き継がず、記録が際限なく増えるのを防ぐ。
-// (復旧の通知は、記録から消える前の実行で済ませている)
+// 代わりに、今回通知した復旧を ResolvedNotified に残して二重通知を防ぐ。
+// previous には今回読み込んだ通知済み状態を、changes には今回通知した変化を、
 // checkedAt には CheckedAt が返す、今回どこまで確認したかを表す目印を渡す。
-func NewNotifiedState(noticeMessages []NoticeMessage, checkedAt string) NotifiedState {
+func NewNotifiedState(previous NotifiedState, noticeMessages []NoticeMessage, changes []IncidentChange, checkedAt string) NotifiedState {
 	incidents := map[string]NotifiedIncident{}
 	for _, noticeMessage := range noticeMessages {
 		incidents[noticeMessage.IncidentID] = NotifiedIncident{
@@ -248,20 +272,66 @@ func NewNotifiedState(noticeMessages []NoticeMessage, checkedAt string) Notified
 		}
 	}
 
-	return NotifiedState{Incidents: incidents, LastCheckedAt: checkedAt}
+	resolvedNotified := map[string]string{}
+	for id, resolvedAt := range previous.ResolvedNotified {
+		resolvedNotified[id] = resolvedAt
+	}
+	for _, change := range changes {
+		if change.Type != CHANGE_RESOLVED {
+			continue
+		}
+		resolvedAt := ""
+		if change.Resolved != nil {
+			resolvedAt = change.Resolved.ResolvedAt
+		}
+		resolvedNotified[change.ID] = resolvedAt
+	}
+
+	return NotifiedState{
+		Incidents:        incidents,
+		LastCheckedAt:    checkedAt,
+		ResolvedNotified: PruneResolvedNotified(resolvedNotified, checkedAt),
+	}
+}
+
+// PruneResolvedNotified は、もう判定に影響しなくなった復旧の記録を取り除く。
+// 復旧日時が確認済みの時点より前になったものは isNewlyResolved が false を返すため、
+// 記録から外しても再通知されることはない。
+// 日時を解析できないものは、二重通知を避ける側に倒して残す。
+func PruneResolvedNotified(resolvedNotified map[string]string, checkedAt string) map[string]string {
+	checked, err := time.Parse(time.RFC3339, checkedAt)
+	if err != nil {
+		return resolvedNotified
+	}
+
+	pruned := map[string]string{}
+	for id, resolvedAt := range resolvedNotified {
+		parsed, err := time.Parse(time.RFC3339, resolvedAt)
+		if err != nil {
+			pruned[id] = resolvedAt
+			continue
+		}
+		if parsed.Before(checked) {
+			continue
+		}
+		pruned[id] = resolvedAt
+	}
+
+	return pruned
 }
 
 // CheckedAt は今回どこまで確認したかを表す目印を返す。
 // 実行するマシンの時計がずれていても復旧の取りこぼしや二重通知が起きないよう、
 // 現在時刻ではなく GitHub が返した時刻を使う。
-// ページの更新日時が復旧日時に追いついていないことがあるため、
-// 両者のうち最も新しいものを採る。
+// ページの更新日時が復旧日時に追いついていないことがあるため、両者のうち最も新しいものを採る。
+// 前回の値も候補に含めるのは、解決済みのインシデントが直近 50 件から外れたときに
+// 目印が巻き戻り、通知済みの復旧が再び飛ぶのを防ぐため。
 // GitHub 側の時刻を 1 つも解析できなかった場合のみ、現在時刻を用いる。
-func CheckedAt(historyIncidents HistoryIncidents, now time.Time) string {
+func CheckedAt(historyIncidents HistoryIncidents, previousCheckedAt string, now time.Time) string {
 	var latest time.Time
 	found := false
 
-	candidates := []string{historyIncidents.Page.UpdateAt}
+	candidates := []string{historyIncidents.Page.UpdateAt, previousCheckedAt}
 	for _, historyIncident := range historyIncidents.Incidents {
 		if IsResolvedStatus(historyIncident.Status) {
 			candidates = append(candidates, historyIncident.ResolvedAt)

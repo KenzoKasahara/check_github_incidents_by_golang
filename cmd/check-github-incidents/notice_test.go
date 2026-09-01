@@ -74,15 +74,38 @@ func TestBuildNoticeMessagesUsesMatchedIncidentComponents(t *testing.T) {
 	}
 }
 
-func TestBuildNoticeMessagesNoMatch(t *testing.T) {
+// 過去のインシデント一覧に無くても、未解決一覧にあれば発生中として扱うことを確認する。
+// 直近 50 件しか返らない過去の一覧に載るのを待つと、発生を取りこぼすうえに、
+// 記録済みのインシデントが一時的に消えたように見えて誤った復旧通知が飛ぶ。
+func TestBuildNoticeMessagesWithoutHistory(t *testing.T) {
 	historyIncidents := HistoryIncidents{
 		Incidents: []HistoryIncident{{ID: "resolved-001"}},
 	}
 	unresolvedIncidents := UnresolvedIncidents{
-		Incidents: []UnresolvedIncident{{ID: "unresolved-002"}},
+		Incidents: []UnresolvedIncident{{ID: "unresolved-002", Name: "進行中", Status: "investigating"}},
 	}
 
 	got := BuildNoticeMessages(historyIncidents, unresolvedIncidents)
+
+	if len(got) != 1 {
+		t.Fatalf("件数 = %v, want 1", len(got))
+	}
+	if got[0].IncidentID != "unresolved-002" || got[0].IncidentName != "進行中" {
+		t.Errorf("通知メッセージ = %+v", got[0])
+	}
+	// コンポーネントは過去の一覧からしか取れないため、空配列となる
+	if want := []string{}; !reflect.DeepEqual(got[0].IncidentComponents, want) {
+		t.Errorf("components = %v, want %v", got[0].IncidentComponents, want)
+	}
+}
+
+// 未解決が 0 件のときは、過去のインシデントがあっても発生中とはしない。
+func TestBuildNoticeMessagesWithoutUnresolved(t *testing.T) {
+	historyIncidents := HistoryIncidents{
+		Incidents: []HistoryIncident{{ID: "resolved-001", Status: "resolved"}},
+	}
+
+	got := BuildNoticeMessages(historyIncidents, UnresolvedIncidents{})
 
 	if got == nil {
 		t.Fatal("nil ではなく空スライスが返ること")

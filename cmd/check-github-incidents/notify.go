@@ -150,12 +150,28 @@ func LimitChanges(changes []IncidentChange) (limited []IncidentChange, omitted i
 
 // ChangeTitle は変化の種類を表すラベルとインシデント名から見出しを組み立てる。
 // 絵文字の書き方が通知先によって異なるため、ラベルは呼び出し側から渡す。
+// 名称を取得できなかった場合はインシデント ID で代替し、どの障害の通知か分かるようにする。
 func ChangeTitle(label string, change IncidentChange) string {
+	name := strings.TrimSpace(change.Name)
+	if name == "" {
+		name = change.ID
+	}
 	if label == "" {
-		return change.Name
+		return name
 	}
 
-	return label + ": " + change.Name
+	return label + ": " + name
+}
+
+// FieldValue は通知に載せる項目の値を整える。
+// Discord は値が空の項目を受け付けず、1 つでも含まれるとリクエスト全体が 400 で失敗する。
+// 記録に名称やステータスが残っていないインシデントでも通知だけは届くよう、空のときは "-" を送る。
+func FieldValue(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "-"
+	}
+
+	return value
 }
 
 // NotificationSummary は通知の見出しを組み立てる。

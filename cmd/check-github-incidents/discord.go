@@ -81,11 +81,11 @@ func DiscordChangeEmbed(change IncidentChange) DiscordEmbed {
 		URL:   incident.IncidentShortLink,
 		Color: DiscordImpactColor(incident.IncidentImpact),
 		Fields: []DiscordEmbedField{
-			{Name: "影響度", Value: incident.IncidentImpact, Inline: true},
-			{Name: "ステータス", Value: incident.IncidentStatus, Inline: true},
+			{Name: "影響度", Value: FieldValue(incident.IncidentImpact), Inline: true},
+			{Name: "ステータス", Value: FieldValue(incident.IncidentStatus), Inline: true},
 			{Name: "コンポーネント", Value: FormatComponents(incident.IncidentComponents), Inline: false},
-			{Name: "発生日時", Value: incident.IncidentCreatedAt, Inline: true},
-			{Name: "最終更新", Value: incident.IncidentUpdatedAt, Inline: true},
+			{Name: "発生日時", Value: FieldValue(incident.IncidentCreatedAt), Inline: true},
+			{Name: "最終更新", Value: FieldValue(incident.IncidentUpdatedAt), Inline: true},
 		},
 	}
 }
@@ -105,18 +105,18 @@ func DiscordResolvedEmbed(change IncidentChange) DiscordEmbed {
 		embed.URL = resolved.ShortLink
 		embed.Description = resolved.Body
 		embed.Fields = append(embed.Fields,
-			DiscordEmbedField{Name: "影響度", Value: resolved.Impact, Inline: true},
+			DiscordEmbedField{Name: "影響度", Value: FieldValue(resolved.Impact), Inline: true},
 			DiscordEmbedField{Name: "コンポーネント", Value: FormatComponents(resolved.Components), Inline: false},
-			DiscordEmbedField{Name: "発生日時", Value: resolved.CreatedAt, Inline: true},
-			DiscordEmbedField{Name: "復旧日時", Value: resolved.ResolvedAt, Inline: true},
+			DiscordEmbedField{Name: "発生日時", Value: FieldValue(resolved.CreatedAt), Inline: true},
+			DiscordEmbedField{Name: "復旧日時", Value: FieldValue(resolved.ResolvedAt), Inline: true},
 		)
 		return embed
 	}
 
 	if change.Previous != nil {
 		embed.Fields = append(embed.Fields,
-			DiscordEmbedField{Name: "直前のステータス", Value: change.Previous.Status, Inline: true},
-			DiscordEmbedField{Name: "前回の更新", Value: change.Previous.UpdatedAt, Inline: true},
+			DiscordEmbedField{Name: "直前のステータス", Value: FieldValue(change.Previous.Status), Inline: true},
+			DiscordEmbedField{Name: "前回の更新", Value: FieldValue(change.Previous.UpdatedAt), Inline: true},
 		)
 	}
 

@@ -22,30 +22,36 @@ type NoticeMessage struct {
 	IncidentUpdatedAt  string   `json:"updated_at"`
 }
 
-// BuildNoticeMessages は過去のインシデントと未解決のインシデントをインシデント ID で突合し、
-// 重複するインシデントから通知メッセージを組み立てる。
-// 影響を受けたコンポーネントは未解決インシデント側に含まれないため、突合した過去のインシデントから取得する。
+// BuildNoticeMessages は未解決のインシデントから通知メッセージを組み立てる。
+// 発生中かどうかの判断は公式の未解決一覧 (/api/v2/incidents/unresolved.json) を唯一の根拠とし、
+// 過去のインシデント一覧は、未解決一覧に含まれない「影響を受けたコンポーネント」の補完だけに使う。
+// 過去のインシデント一覧は直近 50 件しか返らず、反映も未解決一覧より遅れることがあるため、
+// 両方に載っていることを条件にすると発生を取りこぼし、記録済みのインシデントが
+// 一時的に消えたように見えて誤った復旧通知が飛ぶ。
 // 0 件でも nil ではなく空スライスを返す (JSON へ null ではなく空配列 [] として出力するため)。
 func BuildNoticeMessages(historyIncidents HistoryIncidents, unresolvedIncidents UnresolvedIncidents) []NoticeMessage {
-	noticeMessages := []NoticeMessage{}
-
+	componentsByID := map[string][]string{}
 	for _, historyIncident := range historyIncidents.Incidents {
-		for _, unresolvedIncident := range unresolvedIncidents.Incidents {
-			if historyIncident.ID != unresolvedIncident.ID {
-				continue
-			}
+		componentsByID[historyIncident.ID] = AffectedComponentNames(historyIncident.AffectedComponents)
+	}
 
-			noticeMessages = append(noticeMessages, NoticeMessage{
-				IncidentID:         unresolvedIncident.ID,
-				IncidentImpact:     unresolvedIncident.Impact,
-				IncidentName:       unresolvedIncident.Name,
-				IncidentStatus:     unresolvedIncident.Status,
-				IncidentShortLink:  unresolvedIncident.ShortLink,
-				IncidentComponents: AffectedComponentNames(historyIncident.AffectedComponents),
-				IncidentCreatedAt:  unresolvedIncident.CreatedAt,
-				IncidentUpdatedAt:  unresolvedIncident.UpdatedAt,
-			})
+	noticeMessages := []NoticeMessage{}
+	for _, unresolvedIncident := range unresolvedIncidents.Incidents {
+		components, ok := componentsByID[unresolvedIncident.ID]
+		if !ok {
+			components = []string{}
 		}
+
+		noticeMessages = append(noticeMessages, NoticeMessage{
+			IncidentID:         unresolvedIncident.ID,
+			IncidentImpact:     unresolvedIncident.Impact,
+			IncidentName:       unresolvedIncident.Name,
+			IncidentStatus:     unresolvedIncident.Status,
+			IncidentShortLink:  unresolvedIncident.ShortLink,
+			IncidentComponents: components,
+			IncidentCreatedAt:  unresolvedIncident.CreatedAt,
+			IncidentUpdatedAt:  unresolvedIncident.UpdatedAt,
+		})
 	}
 
 	return noticeMessages

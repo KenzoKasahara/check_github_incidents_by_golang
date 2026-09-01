@@ -81,11 +81,11 @@ func SlackChangeAttachment(change IncidentChange) SlackAttachment {
 		Title:     ChangeTitle(SlackChangeLabel(change.Type), change),
 		TitleLink: incident.IncidentShortLink,
 		Fields: []SlackField{
-			{Title: "影響度", Value: incident.IncidentImpact, Short: true},
-			{Title: "ステータス", Value: incident.IncidentStatus, Short: true},
+			{Title: "影響度", Value: FieldValue(incident.IncidentImpact), Short: true},
+			{Title: "ステータス", Value: FieldValue(incident.IncidentStatus), Short: true},
 			{Title: "コンポーネント", Value: FormatComponents(incident.IncidentComponents), Short: false},
-			{Title: "発生日時", Value: incident.IncidentCreatedAt, Short: true},
-			{Title: "最終更新", Value: incident.IncidentUpdatedAt, Short: true},
+			{Title: "発生日時", Value: FieldValue(incident.IncidentCreatedAt), Short: true},
+			{Title: "最終更新", Value: FieldValue(incident.IncidentUpdatedAt), Short: true},
 		},
 	}
 }
@@ -105,18 +105,18 @@ func SlackResolvedAttachment(change IncidentChange) SlackAttachment {
 		attachment.TitleLink = resolved.ShortLink
 		attachment.Text = resolved.Body
 		attachment.Fields = append(attachment.Fields,
-			SlackField{Title: "影響度", Value: resolved.Impact, Short: true},
+			SlackField{Title: "影響度", Value: FieldValue(resolved.Impact), Short: true},
 			SlackField{Title: "コンポーネント", Value: FormatComponents(resolved.Components), Short: false},
-			SlackField{Title: "発生日時", Value: resolved.CreatedAt, Short: true},
-			SlackField{Title: "復旧日時", Value: resolved.ResolvedAt, Short: true},
+			SlackField{Title: "発生日時", Value: FieldValue(resolved.CreatedAt), Short: true},
+			SlackField{Title: "復旧日時", Value: FieldValue(resolved.ResolvedAt), Short: true},
 		)
 		return attachment
 	}
 
 	if change.Previous != nil {
 		attachment.Fields = append(attachment.Fields,
-			SlackField{Title: "直前のステータス", Value: change.Previous.Status, Short: true},
-			SlackField{Title: "前回の更新", Value: change.Previous.UpdatedAt, Short: true},
+			SlackField{Title: "直前のステータス", Value: FieldValue(change.Previous.Status), Short: true},
+			SlackField{Title: "前回の更新", Value: FieldValue(change.Previous.UpdatedAt), Short: true},
 		)
 	}
 

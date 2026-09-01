@@ -97,6 +97,15 @@ func main() {
 	if err != nil {
 		log.Fatalln("[ERROR]", err)
 	}
+	if notifiedState.LastCheckedAt == "" {
+		// 目印が無い間は、未解決の状態を観測できなかったインシデントの復旧を通知できない。
+		// 記録を作り直した直後に過去の障害がまとめて飛ぶのを防ぐための仕様であり、
+		// 今回の実行で目印を残すため、次回以降は通知されるようになる。
+		log.Printf("%v %v\n", "[INFO]", "前回の確認時点の記録がありません。今回を起点として記録します。")
+	} else {
+		log.Printf("%v %v\n", "[INFO]", "前回の確認時点: "+notifiedState.LastCheckedAt)
+	}
+
 	changes := notifiedState.Diff(noticeMessages, resolvedDetails)
 	if len(changes) == 0 {
 		log.Printf("%v %v\n", "[INFO]", "前回から変化がありません。")
@@ -115,7 +124,8 @@ func main() {
 	// ローカルサンプルは日付が実 API とかけ離れており、記録を残すと
 	// 次の実 API 実行で過去のインシデントが一斉に復旧として飛ぶため更新しない。
 	if notifyErr == nil && !options.DryRun && len(notifiers) > 0 && !useLocal {
-		if err := SaveNotifiedState(NOTIFIED_STATE_FILE_PATH, NewNotifiedState(noticeMessages, CheckedAt(historyIncidents, now))); err != nil {
+		checkedAt := CheckedAt(historyIncidents, notifiedState.LastCheckedAt, now)
+		if err := SaveNotifiedState(NOTIFIED_STATE_FILE_PATH, NewNotifiedState(notifiedState, noticeMessages, changes, checkedAt)); err != nil {
 			log.Fatalln("[ERROR]", err)
 		}
 	}
