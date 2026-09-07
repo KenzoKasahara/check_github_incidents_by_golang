@@ -294,3 +294,107 @@ func TestTruncateBody(t *testing.T) {
 		})
 	}
 }
+
+// 実 API が返す components を読めることを確認する。
+// 以前は affected_components だけを見ていたため、通知のコンポーネント欄が常に空だった。
+func TestComponentNamesUsesComponentsField(t *testing.T) {
+	historyIncident := HistoryIncident{
+		Components: []AffectedComponent{{Name: "Actions"}, {Name: "Pages"}},
+	}
+	if got := historyIncident.ComponentNames(); !equalStrings(got, []string{"Actions", "Pages"}) {
+		t.Errorf("過去の一覧 = %v", got)
+	}
+
+	unresolvedIncident := UnresolvedIncident{
+		Components: []AffectedComponent{{Name: "Codespaces"}},
+	}
+	if got := unresolvedIncident.ComponentNames(); !equalStrings(got, []string{"Codespaces"}) {
+		t.Errorf("未解決一覧 = %v", got)
+	}
+
+	// components が空のときは affected_components を見る (サンプルデータがこの形)
+	legacy := HistoryIncident{
+		AffectedComponents: []AffectedComponent{{Name: "Webhooks"}},
+	}
+	if got := legacy.ComponentNames(); !equalStrings(got, []string{"Webhooks"}) {
+		t.Errorf("旧形式 = %v", got)
+	}
+}
+
+// 復旧の通知に載せるコンポーネントが、実 API の components から取れることを確認する。
+func TestBuildResolvedDetailsUsesComponentsField(t *testing.T) {
+	historyIncidents := HistoryIncidents{
+		Incidents: []HistoryIncident{
+			{
+				ID:         "resolved",
+				Status:     "resolved",
+				Components: []AffectedComponent{{Name: "Pull Requests"}},
+			},
+		},
+	}
+
+	details := BuildResolvedDetails(historyIncidents)
+
+	if got := details["resolved"].Components; !equalStrings(got, []string{"Pull Requests"}) {
+		t.Errorf("コンポーネント = %v", got)
+	}
+}
+
+// 未解決一覧が返すコンポーネントを優先し、空のときだけ過去の一覧で補うことを確認する。
+func TestBuildNoticeMessagesPrefersUnresolvedComponents(t *testing.T) {
+	historyIncidents := HistoryIncidents{
+		Incidents: []HistoryIncident{
+			{ID: "a", Components: []AffectedComponent{{Name: "過去の一覧"}}},
+			{ID: "b", Components: []AffectedComponent{{Name: "補完された値"}}},
+		},
+	}
+	unresolvedIncidents := UnresolvedIncidents{
+		Incidents: []UnresolvedIncident{
+			{ID: "a", Components: []AffectedComponent{{Name: "未解決一覧"}}},
+			{ID: "b"},
+		},
+	}
+
+	got := BuildNoticeMessages(historyIncidents, unresolvedIncidents)
+
+	if len(got) != 2 {
+		t.Fatalf("件数 = %v, want 2", len(got))
+	}
+	if !equalStrings(got[0].IncidentComponents, []string{"未解決一覧"}) {
+		t.Errorf("a のコンポーネント = %v", got[0].IncidentComponents)
+	}
+	if !equalStrings(got[1].IncidentComponents, []string{"補完された値"}) {
+		t.Errorf("b のコンポーネント = %v", got[1].IncidentComponents)
+	}
+}
+
+// 変化の判定に必要な 3 つの情報がまとめて組み立てられることを確認する。
+func TestBuildIncidentSnapshot(t *testing.T) {
+	historyIncidents := HistoryIncidents{
+		Page: IncidentPage{UpdateAt: "2026-08-31T10:00:00Z"},
+		Incidents: []HistoryIncident{
+			{ID: "resolved", Status: "resolved", ResolvedAt: "2026-08-31T09:00:00Z"},
+			{ID: "postmortem", Status: "postmortem", ResolvedAt: "2026-08-30T09:00:00Z"},
+			{ID: "ongoing", Status: "monitoring"},
+		},
+	}
+	unresolvedIncidents := UnresolvedIncidents{
+		Incidents: []UnresolvedIncident{{ID: "ongoing", Status: "monitoring"}},
+	}
+
+	got := BuildIncidentSnapshot(historyIncidents, unresolvedIncidents)
+
+	if got.ObservedAt != "2026-08-31T10:00:00Z" {
+		t.Errorf("観測時点 = %v", got.ObservedAt)
+	}
+	if len(got.Notices) != 1 || got.Notices[0].IncidentID != "ongoing" {
+		t.Errorf("通知メッセージ = %+v", got.Notices)
+	}
+	// postmortem は解決後に事後報告が付いた状態のため解決済みに含める
+	if len(got.Resolved) != 2 {
+		t.Errorf("解決済み = %v, want 2 件", len(got.Resolved))
+	}
+	if !got.Ongoing["ongoing"] || got.Ongoing["resolved"] {
+		t.Errorf("未解決 = %v", got.Ongoing)
+	}
+}

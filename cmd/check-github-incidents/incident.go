@@ -44,23 +44,41 @@ type AffectedComponent struct {
 	Name string `json:"name"`
 }
 
+// PickComponents は影響を受けたコンポーネントとして使う方を選ぶ。
+// 実 API (statuspage) が返すのは components で、affected_components は
+// 更新履歴側の項目名のため、インシデント本体では null になる。
+// 過去に作ったサンプルデータは affected_components 側に持っているため、両方を見る。
+func PickComponents(components []AffectedComponent, affectedComponents []AffectedComponent) []AffectedComponent {
+	if len(components) > 0 {
+		return components
+	}
+
+	return affectedComponents
+}
+
 // UnresolvedIncident は未解決インシデント 1 件分を表す。
 type UnresolvedIncident struct {
-	CreatedAt       string           `json:"created_at"`
-	ID              string           `json:"id"`
-	Impact          string           `json:"impact"`
-	IncidentUpdates []IncidentUpdate `json:"incident_updates"`
-	MonitoringAt    string           `json:"monitoring_at"`
-	Name            string           `json:"name"`
-	PageID          string           `json:"page_id"`
-	ResolvedAt      string           `json:"resolved_at"`
-	ShortLink       string           `json:"shortlink"`
-	Status          string           `json:"status"`
-	UpdatedAt       string           `json:"updated_at"`
+	CreatedAt          string              `json:"created_at"`
+	ID                 string              `json:"id"`
+	Impact             string              `json:"impact"`
+	IncidentUpdates    []IncidentUpdate    `json:"incident_updates"`
+	MonitoringAt       string              `json:"monitoring_at"`
+	Name               string              `json:"name"`
+	PageID             string              `json:"page_id"`
+	ResolvedAt         string              `json:"resolved_at"`
+	ShortLink          string              `json:"shortlink"`
+	Status             string              `json:"status"`
+	UpdatedAt          string              `json:"updated_at"`
+	Components         []AffectedComponent `json:"components"`
+	AffectedComponents []AffectedComponent `json:"affected_components"`
+}
+
+// ComponentNames は影響を受けたコンポーネントの名称のみを取り出す。
+func (incident UnresolvedIncident) ComponentNames() []string {
+	return AffectedComponentNames(PickComponents(incident.Components, incident.AffectedComponents))
 }
 
 // HistoryIncident は過去のインシデント 1 件分を表す。
-// 未解決インシデントとは異なり、影響を受けたコンポーネントを含む。
 type HistoryIncident struct {
 	CreatedAt          string              `json:"created_at"`
 	ID                 string              `json:"id"`
@@ -73,7 +91,13 @@ type HistoryIncident struct {
 	ShortLink          string              `json:"shortlink"`
 	Status             string              `json:"status"`
 	UpdatedAt          string              `json:"updated_at"`
+	Components         []AffectedComponent `json:"components"`
 	AffectedComponents []AffectedComponent `json:"affected_components"`
+}
+
+// ComponentNames は影響を受けたコンポーネントの名称のみを取り出す。
+func (incident HistoryIncident) ComponentNames() []string {
+	return AffectedComponentNames(PickComponents(incident.Components, incident.AffectedComponents))
 }
 
 // UnresolvedIncidents は /api/v2/incidents/unresolved.json のレスポンスを表す。

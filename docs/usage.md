@@ -26,7 +26,7 @@ Status API は参照せず、サンプルのインシデントを新規・更新
 go run ./cmd/check-github-incidents -test-notify
 ```
 
-- `notified_incidents.json` と `notice_message.json` には触れないため、本番の記録を壊しません
+- 記録ファイルと `notice_message.json` には触れないため、本番の記録を壊しません
 - インシデント名は `[テスト通知] Example Incident` となり、本物と取り違えることはありません
 - Webhook URL が未設定のときは `[WARNING]` を出して何も送りません
 - `-dry-run` と併用すると、送信せずに内容だけを確認できます
@@ -34,6 +34,30 @@ go run ./cmd/check-github-incidents -test-notify
 ```sh
 go run ./cmd/check-github-incidents -test-notify -dry-run
 ```
+
+## サンプルで復旧まで試す
+
+`-local` は [testdata/](../testdata/) のサンプルを読みます。記録は実 API 用とは別の
+`notified_incidents.local.json` に残るため、本番の記録を壊さずに
+発生から復旧までの流れを一通り確認できます。
+
+```sh
+# 1. 発生を通知する（testdata の未解決インシデントが新規として飛ぶ）
+go run ./cmd/check-github-incidents -local
+
+# 2. testdata/unresolved_incidents.json から該当のインシデントを取り除き、
+#    testdata/all_incidents.json の同じ ID を "status": "resolved" にして
+#    "resolved_at" を入れる
+
+# 3. 復旧を通知する
+go run ./cmd/check-github-incidents -local
+
+# 4. 試し終わったら記録を消す
+rm notified_incidents.local.json
+```
+
+記録が更新されるのは実際に送信した実行だけです。`-dry-run` を付けたり
+Webhook URL が未設定のままだと記録が残らないため、2 回目も「新規」として通知されます。
 
 ログや出力ファイルは**実行時のカレントディレクトリ**を基準に作成されます。
 上記のとおり、リポジトリのルートから実行してください。

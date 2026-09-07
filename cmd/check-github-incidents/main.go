@@ -60,9 +60,12 @@ func main() {
 
 	// データの取得元を判定 (コマンドライン引数 > 環境変数 > 既定値)
 	useLocal := UseLocalSample(options.LocalSample)
+	// 記録ファイルは取得元ごとに分ける。サンプルの日付は実 API とかけ離れており、
+	// 同じファイルを使うと次の実 API 実行で過去のインシデントが一斉に復旧として飛ぶため
+	notifiedStateFilePath := NotifiedStateFilePath(useLocal)
 	if useLocal {
 		log.Printf("%v %v\n", "[INFO]", "data source: local sample files")
-		log.Printf("%v %v\n", "[INFO]", "本番の記録 ("+NOTIFIED_STATE_FILE_PATH+") は更新しません。")
+		log.Printf("%v %v\n", "[INFO]", "本番の記録 ("+NOTIFIED_STATE_FILE_PATH+") は更新しません。記録は "+notifiedStateFilePath+" に残します。")
 	} else {
 		log.Printf("%v %v\n", "[INFO]", "data source: "+GITHUB_COMMON_URL)
 	}
@@ -79,34 +82,31 @@ func main() {
 		log.Fatalln("[ERROR]", err)
 	}
 
-	// 過去のインシデントと未解決のインシデントより、重複するインシデント情報を取得
-	noticeMessages := BuildNoticeMessages(historyIncidents, unresolvedIncidents)
-
-	// 解決済みのインシデントを取得する。
-	// 未解決一覧には残らないため、復旧の判定と通知内容はこちらから組み立てる
-	resolvedDetails := BuildResolvedDetails(historyIncidents)
+	// 変化の判定に必要な情報 (未解決・解決済み・未反映) をまとめる
+	snapshot := BuildIncidentSnapshot(historyIncidents, unresolvedIncidents)
 
 	// 通知メッセージをファイルに書き込む (通知の有無にかかわらず全件を出力する)
-	if err := WriteNoticeMessages(NOTICE_FILE_PATH, noticeMessages); err != nil {
+	if err := WriteNoticeMessages(NOTICE_FILE_PATH, snapshot.Notices); err != nil {
 		log.Fatalln("[ERROR]", err)
 	}
-	log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("メッセージをファイルに書き込みました。(%v 件)", len(noticeMessages)))
+	log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("メッセージをファイルに書き込みました。(%v 件)", len(snapshot.Notices)))
 
 	// 前回通知した内容と突合し、新規・更新・復旧したインシデントだけに絞り込む
-	notifiedState, err := LoadNotifiedState(NOTIFIED_STATE_FILE_PATH)
+	notifiedState, err := LoadNotifiedState(notifiedStateFilePath)
 	if err != nil {
 		log.Fatalln("[ERROR]", err)
 	}
 	if notifiedState.LastCheckedAt == "" {
-		// 目印が無い間は、未解決の状態を観測できなかったインシデントの復旧を通知できない。
-		// 記録を作り直した直後に過去の障害がまとめて飛ぶのを防ぐための仕様であり、
-		// 今回の実行で目印を残すため、次回以降は通知されるようになる。
-		log.Printf("%v %v\n", "[INFO]", "前回の確認時点の記録がありません。今回を起点として記録します。")
+		// 目印が無い間は、未解決の状態を観測できなかったインシデントの復旧を
+		// 直近 RESOLVED_LOOKBACK 以内に解決したものだけに絞る。
+		// 記録を作り直した直後に、過去のインシデント一覧に残る古い障害が
+		// まとめて飛ぶのを防ぐための仕様。
+		log.Printf("%v %v\n", "[INFO]", fmt.Sprintf("前回の確認時点の記録がありません。直近 %v 以内に解決したものを復旧として扱います。", RESOLVED_LOOKBACK))
 	} else {
 		log.Printf("%v %v\n", "[INFO]", "前回の確認時点: "+notifiedState.LastCheckedAt)
 	}
 
-	changes := notifiedState.Diff(noticeMessages, resolvedDetails)
+	changes := notifiedState.Diff(snapshot)
 	if len(changes) == 0 {
 		log.Printf("%v %v\n", "[INFO]", "前回から変化がありません。")
 	} else {
@@ -121,11 +121,10 @@ func main() {
 	// 通知済み状態を更新する。
 	// 送信に失敗した場合は次回に再通知させるため更新しない。
 	// dry-run と通知先未設定のときも、実際には送信していないため更新しない。
-	// ローカルサンプルは日付が実 API とかけ離れており、記録を残すと
-	// 次の実 API 実行で過去のインシデントが一斉に復旧として飛ぶため更新しない。
-	if notifyErr == nil && !options.DryRun && len(notifiers) > 0 && !useLocal {
+	// ローカルサンプルのときは取得元ごとに分けた記録ファイルへ書き出す。
+	if notifyErr == nil && !options.DryRun && len(notifiers) > 0 {
 		checkedAt := CheckedAt(historyIncidents, notifiedState.LastCheckedAt, now)
-		if err := SaveNotifiedState(NOTIFIED_STATE_FILE_PATH, NewNotifiedState(notifiedState, noticeMessages, changes, checkedAt)); err != nil {
+		if err := SaveNotifiedState(notifiedStateFilePath, NewNotifiedState(notifiedState, snapshot, changes, checkedAt)); err != nil {
 			log.Fatalln("[ERROR]", err)
 		}
 	}

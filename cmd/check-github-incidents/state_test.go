@@ -30,7 +30,7 @@ func TestNotifiedStateDiff(t *testing.T) {
 		{IncidentID: "new", IncidentUpdatedAt: "2026-08-26T12:00:00Z"},
 	}
 
-	got := state.Diff(noticeMessages, nil)
+	got := state.Diff(IncidentSnapshot{Notices: noticeMessages})
 
 	want := []string{"updated:updated", "new:new", "resolved:resolved"}
 	if !equalStrings(changeIDs(got), want) {
@@ -44,7 +44,7 @@ func TestNotifiedStateDiffResolved(t *testing.T) {
 		"resolved": {Name: "Unplanned Database Outage", Status: "monitoring", UpdatedAt: "2026-08-26T09:00:00Z"},
 	}}
 
-	got := state.Diff([]NoticeMessage{}, nil)
+	got := state.Diff(IncidentSnapshot{})
 
 	if len(got) != 1 {
 		t.Fatalf("変化 = %v 件, want 1", len(got))
@@ -76,7 +76,7 @@ func TestNotifiedStateDiffResolvedIsSorted(t *testing.T) {
 
 	want := []string{"resolved:a", "resolved:b", "resolved:c"}
 	for i := 0; i < 5; i++ {
-		if got := changeIDs(state.Diff([]NoticeMessage{}, nil)); !equalStrings(got, want) {
+		if got := changeIDs(state.Diff(IncidentSnapshot{})); !equalStrings(got, want) {
 			t.Fatalf("変化 = %v, want %v", got, want)
 		}
 	}
@@ -87,7 +87,7 @@ func TestNotifiedStateDiffFirstRun(t *testing.T) {
 	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
 	noticeMessages := []NoticeMessage{{IncidentID: "a"}, {IncidentID: "b"}}
 
-	got := state.Diff(noticeMessages, nil)
+	got := state.Diff(IncidentSnapshot{Notices: noticeMessages})
 
 	if !equalStrings(changeIDs(got), []string{"new:a", "new:b"}) {
 		t.Errorf("変化 = %v", changeIDs(got))
@@ -97,7 +97,7 @@ func TestNotifiedStateDiffFirstRun(t *testing.T) {
 func TestNotifiedStateDiffReturnsEmptySlice(t *testing.T) {
 	state := NotifiedState{Incidents: map[string]NotifiedIncident{"a": {}}}
 
-	if got := state.Diff([]NoticeMessage{{IncidentID: "a"}}, nil); got == nil {
+	if got := state.Diff(IncidentSnapshot{Notices: []NoticeMessage{{IncidentID: "a"}}}); got == nil {
 		t.Error("nil ではなく空スライスが返ること")
 	}
 }
@@ -120,7 +120,7 @@ func TestNewNotifiedStateDropsResolved(t *testing.T) {
 		{IncidentID: "still-open", IncidentName: "継続中", IncidentStatus: "identified", IncidentUpdatedAt: "2026-08-26T10:00:00Z"},
 	}
 
-	state := NewNotifiedState(NotifiedState{}, noticeMessages, nil, "2026-08-26T12:00:00Z")
+	state := NewNotifiedState(NotifiedState{}, IncidentSnapshot{Notices: noticeMessages}, nil, "2026-08-26T12:00:00Z")
 
 	if state.LastCheckedAt != "2026-08-26T12:00:00Z" {
 		t.Errorf("last_checked_at = %v", state.LastCheckedAt)
@@ -141,10 +141,10 @@ func TestNewNotifiedStateDropsResolved(t *testing.T) {
 func TestSaveAndLoadNotifiedState(t *testing.T) {
 	stateFilePath := filepath.Join(t.TempDir(), "notified_incidents.json")
 
-	want := NewNotifiedState(NotifiedState{}, []NoticeMessage{
+	want := NewNotifiedState(NotifiedState{}, IncidentSnapshot{Notices: []NoticeMessage{
 		{IncidentID: "a", IncidentName: "A", IncidentStatus: "investigating", IncidentUpdatedAt: "2026-08-26T10:00:00Z"},
 		{IncidentID: "b", IncidentName: "B", IncidentStatus: "monitoring", IncidentUpdatedAt: "2026-08-26T11:00:00Z"},
-	}, []IncidentChange{{Type: CHANGE_RESOLVED, ID: "c", Resolved: &ResolvedDetail{ResolvedAt: "2026-08-26T13:00:00Z"}}}, "2026-08-26T12:00:00Z")
+	}}, []IncidentChange{{Type: CHANGE_RESOLVED, ID: "c", Resolved: &ResolvedDetail{ResolvedAt: "2026-08-26T13:00:00Z"}}}, "2026-08-26T12:00:00Z")
 	if err := SaveNotifiedState(stateFilePath, want); err != nil {
 		t.Fatalf("SaveNotifiedState() error = %v", err)
 	}
@@ -219,7 +219,7 @@ func TestNotifiedStateDiffResolvedWithoutRecord(t *testing.T) {
 		"unseen": {Name: "見逃した障害", ResolvedAt: "2026-08-31T09:58:14.157Z", Impact: "major"},
 	}
 
-	got := state.Diff([]NoticeMessage{}, resolvedDetails)
+	got := state.Diff(IncidentSnapshot{Resolved: resolvedDetails})
 
 	if len(got) != 1 {
 		t.Fatalf("変化 = %v 件, want 1", len(got))
@@ -253,19 +253,78 @@ func TestNotifiedStateDiffIgnoresOldResolved(t *testing.T) {
 		"unparsed": {Name: "日時が読めない", ResolvedAt: ""},
 	}
 
-	if got := state.Diff([]NoticeMessage{}, resolvedDetails); len(got) != 0 {
+	if got := state.Diff(IncidentSnapshot{Resolved: resolvedDetails}); len(got) != 0 {
 		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
 	}
 }
 
-// 初回実行では過去の復旧をまとめて通知しないことを確認する。
-func TestNotifiedStateDiffFirstRunSkipsResolved(t *testing.T) {
+// 初回実行 (目印が無い) でも、直近に解決したものは復旧として通知することを確認する。
+// 目印ができるまで復旧を一切通知しないと、その間に解決した障害の通知が届かないままになる。
+func TestNotifiedStateDiffFirstRunNotifiesRecentResolved(t *testing.T) {
 	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
-	resolvedDetails := map[string]ResolvedDetail{
-		"old": {Name: "過去の障害", ResolvedAt: "2026-08-31T09:58:14.157Z"},
+	snapshot := IncidentSnapshot{
+		ObservedAt: "2026-08-31T10:00:00Z",
+		Resolved: map[string]ResolvedDetail{
+			"recent": {Name: "直前に解決した障害", ResolvedAt: "2026-08-31T09:58:14.157Z"},
+		},
 	}
 
-	if got := state.Diff([]NoticeMessage{}, resolvedDetails); len(got) != 0 {
+	got := state.Diff(snapshot)
+
+	if len(got) != 1 || got[0].Type != CHANGE_RESOLVED || got[0].ID != "recent" {
+		t.Fatalf("変化 = %v, want 復旧 1 件", changeIDs(got))
+	}
+}
+
+// 初回実行では、遡る範囲より古い復旧をまとめて通知しないことを確認する。
+// 過去のインシデント一覧には数日前の分も残っているため、範囲を区切らないと一斉に飛ぶ。
+func TestNotifiedStateDiffFirstRunSkipsOldResolved(t *testing.T) {
+	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
+	observedAt := time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC)
+	snapshot := IncidentSnapshot{
+		ObservedAt: observedAt.Format(time.RFC3339),
+		Resolved: map[string]ResolvedDetail{
+			"old": {
+				Name:       "過去の障害",
+				ResolvedAt: observedAt.Add(-RESOLVED_LOOKBACK - time.Hour).Format(time.RFC3339),
+			},
+		},
+	}
+
+	if got := state.Diff(snapshot); len(got) != 0 {
+		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
+	}
+}
+
+// GitHub 側の時刻を読めないときは、下限を決められないため復旧を通知しないことを確認する。
+func TestNotifiedStateDiffSkipsResolvedWithoutLowerBound(t *testing.T) {
+	state := NotifiedState{Incidents: map[string]NotifiedIncident{}}
+	snapshot := IncidentSnapshot{
+		Resolved: map[string]ResolvedDetail{
+			"old": {Name: "過去の障害", ResolvedAt: "2026-08-31T09:58:14.157Z"},
+		},
+	}
+
+	if got := state.Diff(snapshot); len(got) != 0 {
+		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
+	}
+}
+
+// 過去のインシデント一覧に未解決のまま残っているうちは、未解決一覧から消えても
+// 復旧としないことを確認する。ここで復旧としてしまうと、誤った通知が飛ぶうえに
+// 通知済みとして記録され、本当に解決したときの通知まで握りつぶしてしまう。
+func TestNotifiedStateDiffWaitsForOngoingIncident(t *testing.T) {
+	state := NotifiedState{
+		Incidents:     map[string]NotifiedIncident{"lagging": {Name: "反映待ち", Status: "monitoring"}},
+		LastCheckedAt: "2026-08-31T09:00:00Z",
+	}
+	snapshot := IncidentSnapshot{
+		ObservedAt: "2026-08-31T10:00:00Z",
+		Resolved:   map[string]ResolvedDetail{},
+		Ongoing:    map[string]bool{"lagging": true},
+	}
+
+	if got := state.Diff(snapshot); len(got) != 0 {
 		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
 	}
 }
@@ -280,7 +339,7 @@ func TestNotifiedStateDiffResolvedUsesDetail(t *testing.T) {
 		"resolved": {Name: "新しい名称", ShortLink: "https://stspg.io/abc", ResolvedAt: "2026-08-31T09:58:14.157Z"},
 	}
 
-	got := state.Diff([]NoticeMessage{}, resolvedDetails)
+	got := state.Diff(IncidentSnapshot{Resolved: resolvedDetails})
 
 	if len(got) != 1 {
 		t.Fatalf("変化 = %v 件, want 1", len(got))
@@ -309,7 +368,7 @@ func TestNotifiedStateDiffKeepsUnresolvedOutOfResolved(t *testing.T) {
 	}
 	noticeMessages := []NoticeMessage{{IncidentID: "a", IncidentUpdatedAt: "2026-08-31T09:00:00Z"}}
 
-	if got := state.Diff(noticeMessages, resolvedDetails); len(got) != 0 {
+	if got := state.Diff(IncidentSnapshot{Notices: noticeMessages, Resolved: resolvedDetails}); len(got) != 0 {
 		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
 	}
 }
@@ -326,7 +385,7 @@ func TestNotifiedStateDiffResolvedAfterLosingRecord(t *testing.T) {
 		"lost": {Name: "記録が消えた障害", ResolvedAt: "2026-08-31T09:58:14.157Z"},
 	}
 
-	got := state.Diff([]NoticeMessage{}, resolvedDetails)
+	got := state.Diff(IncidentSnapshot{Resolved: resolvedDetails})
 
 	if len(got) != 1 || got[0].Type != CHANGE_RESOLVED || got[0].ID != "lost" {
 		t.Fatalf("変化 = %v, want 復旧 1 件", changeIDs(got))
@@ -344,7 +403,7 @@ func TestNotifiedStateDiffSkipsAlreadyNotifiedResolved(t *testing.T) {
 		"done": {Name: "通知済みの障害", ResolvedAt: "2026-08-31T09:58:14.157Z"},
 	}
 
-	if got := state.Diff([]NoticeMessage{}, resolvedDetails); len(got) != 0 {
+	if got := state.Diff(IncidentSnapshot{Resolved: resolvedDetails}); len(got) != 0 {
 		t.Errorf("変化 = %v, want 0 件", changeIDs(got))
 	}
 }
@@ -356,7 +415,7 @@ func TestNotifiedStateDiffResolvedWithoutDetail(t *testing.T) {
 		LastCheckedAt: "2026-08-31T09:00:00Z",
 	}
 
-	got := state.Diff([]NoticeMessage{}, map[string]ResolvedDetail{})
+	got := state.Diff(IncidentSnapshot{Resolved: map[string]ResolvedDetail{}})
 
 	if len(got) != 1 || got[0].Type != CHANGE_RESOLVED {
 		t.Fatalf("変化 = %v, want 復旧 1 件", changeIDs(got))
@@ -382,7 +441,7 @@ func TestNewNotifiedStateCarriesResolvedNotified(t *testing.T) {
 		{Type: CHANGE_NEW, ID: "ignored"},
 	}
 
-	got := NewNotifiedState(previous, nil, changes, "2026-08-31T10:00:00Z")
+	got := NewNotifiedState(previous, IncidentSnapshot{}, changes, "2026-08-31T10:00:00Z")
 
 	if _, ok := got.ResolvedNotified["old"]; ok {
 		t.Error("確認済みの時点より前の復旧は取り除かれること")
@@ -460,5 +519,42 @@ func TestCheckedAt(t *testing.T) {
 				t.Errorf("CheckedAt() = %v, want %v", got, test.want)
 			}
 		})
+	}
+}
+
+// 再び未解決として観測されたインシデントは、通知済みの復旧から外れることを確認する。
+// 外れていないと、次に本当に解決したときの復旧通知が握りつぶされる。
+func TestNewNotifiedStateForgetsResolvedWhenSeenAgain(t *testing.T) {
+	previous := NotifiedState{
+		ResolvedNotified: map[string]string{"back": "2026-08-31T12:00:00Z"},
+	}
+	noticeMessages := []NoticeMessage{{IncidentID: "back", IncidentUpdatedAt: "2026-08-31T12:30:00Z"}}
+
+	got := NewNotifiedState(previous, IncidentSnapshot{Notices: noticeMessages}, nil, "2026-08-31T12:30:00Z")
+
+	if _, ok := got.ResolvedNotified["back"]; ok {
+		t.Error("未解決として観測されたインシデントは通知済みの復旧から外れること")
+	}
+}
+
+// 復旧日時を取得できなかった場合でも、記録が日時として残ることを確認する。
+// 空のままだと解析できず、通知済みの記録が取り除かれないまま残り続ける。
+func TestNewNotifiedStateFallsBackToCheckedAt(t *testing.T) {
+	changes := []IncidentChange{{Type: CHANGE_RESOLVED, ID: "no-detail"}}
+
+	got := NewNotifiedState(NotifiedState{}, IncidentSnapshot{}, changes, "2026-08-31T12:00:00Z")
+
+	if got.ResolvedNotified["no-detail"] != "2026-08-31T12:00:00Z" {
+		t.Errorf("no-detail = %v, want 確認時点", got.ResolvedNotified["no-detail"])
+	}
+}
+
+func TestNotifiedStateFilePath(t *testing.T) {
+	if got := NotifiedStateFilePath(false); got != NOTIFIED_STATE_FILE_PATH {
+		t.Errorf("実 API = %v, want %v", got, NOTIFIED_STATE_FILE_PATH)
+	}
+	// サンプルの日付は実 API とかけ離れているため、記録を混ぜない
+	if got := NotifiedStateFilePath(true); got != NOTIFIED_STATE_LOCAL_FILE_PATH {
+		t.Errorf("ローカルサンプル = %v, want %v", got, NOTIFIED_STATE_LOCAL_FILE_PATH)
 	}
 }

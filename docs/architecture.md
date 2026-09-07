@@ -42,6 +42,7 @@
 ├── check-github-incidents         # ビルド生成物（追跡対象外）
 ├── notice_message.json            # 出力ファイル（実行時に上書き生成）
 ├── notified_incidents.json        # 通知済みの記録（実行時に生成 / 追跡対象外）
+├── notified_incidents.local.json  # -local 用の通知済みの記録（同上）
 ├── logs/                          # 日付別ログと cron のログ（実行時に自動作成）
 └── testdata/                      # サンプルレスポンス（go のビルド対象外）
     ├── all_incidents.json         # 全インシデント

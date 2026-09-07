@@ -9,8 +9,9 @@
 *.test
 *.out
 
-# 実行時に生成される通知済み状態
+# 実行時に生成される通知済み状態（-local 用は別ファイル）
 /notified_incidents.json
+/notified_incidents.local.json
 
 # 実行時に生成されるログ
 /logs/*.log

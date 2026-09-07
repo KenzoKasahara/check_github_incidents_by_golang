@@ -32,13 +32,18 @@ type NoticeMessage struct {
 func BuildNoticeMessages(historyIncidents HistoryIncidents, unresolvedIncidents UnresolvedIncidents) []NoticeMessage {
 	componentsByID := map[string][]string{}
 	for _, historyIncident := range historyIncidents.Incidents {
-		componentsByID[historyIncident.ID] = AffectedComponentNames(historyIncident.AffectedComponents)
+		componentsByID[historyIncident.ID] = historyIncident.ComponentNames()
 	}
 
 	noticeMessages := []NoticeMessage{}
 	for _, unresolvedIncident := range unresolvedIncidents.Incidents {
-		components, ok := componentsByID[unresolvedIncident.ID]
-		if !ok {
+		// 未解決一覧もコンポーネントを返すため、まずはそちらを使う。
+		// 空のときだけ過去のインシデント一覧で補う
+		components := unresolvedIncident.ComponentNames()
+		if len(components) == 0 {
+			components = componentsByID[unresolvedIncident.ID]
+		}
+		if components == nil {
 			components = []string{}
 		}
 
@@ -104,6 +109,44 @@ func IsResolvedStatus(status string) bool {
 	return status == "resolved" || status == "postmortem"
 }
 
+// IncidentSnapshot は 1 回の実行で GitHub から取得した状態をまとめたもの。
+// 復旧の判定には未解決一覧と過去のインシデント一覧の両方が要るため、まとめて受け渡す。
+type IncidentSnapshot struct {
+	// ObservedAt は GitHub 側で観測した時刻 (incidents.json の page.updated_at)。
+	// 実行するマシンの時計のずれに左右されないよう、現在時刻の代わりに用いる。
+	ObservedAt string
+	// Notices は未解決一覧から組み立てた通知メッセージ。
+	Notices []NoticeMessage
+	// Resolved は過去のインシデント一覧で解決済みになっているもの。キーはインシデント ID。
+	Resolved map[string]ResolvedDetail
+	// Ongoing は過去のインシデント一覧にあるが、まだ解決済みになっていないもの。キーはインシデント ID。
+	// 未解決一覧への反映が遅れているだけのインシデントを、復旧と取り違えないために使う。
+	Ongoing map[string]bool
+}
+
+// BuildIncidentSnapshot は取得した 2 つの一覧から、変化の判定に必要な情報を組み立てる。
+func BuildIncidentSnapshot(historyIncidents HistoryIncidents, unresolvedIncidents UnresolvedIncidents) IncidentSnapshot {
+	return IncidentSnapshot{
+		ObservedAt: historyIncidents.Page.UpdateAt,
+		Notices:    BuildNoticeMessages(historyIncidents, unresolvedIncidents),
+		Resolved:   BuildResolvedDetails(historyIncidents),
+		Ongoing:    BuildOngoingIDs(historyIncidents),
+	}
+}
+
+// BuildOngoingIDs は過去のインシデント一覧のうち、まだ解決済みになっていないものの ID を返す。
+func BuildOngoingIDs(historyIncidents HistoryIncidents) map[string]bool {
+	ongoing := map[string]bool{}
+
+	for _, historyIncident := range historyIncidents.Incidents {
+		if !IsResolvedStatus(historyIncident.Status) {
+			ongoing[historyIncident.ID] = true
+		}
+	}
+
+	return ongoing
+}
+
 // BuildResolvedDetails は過去のインシデントから解決済みのものを取り出し、インシデント ID で引けるようにする。
 // 復旧の判定と通知内容の両方に用いる。
 func BuildResolvedDetails(historyIncidents HistoryIncidents) map[string]ResolvedDetail {
@@ -118,7 +161,7 @@ func BuildResolvedDetails(historyIncidents HistoryIncidents) map[string]Resolved
 			Name:       historyIncident.Name,
 			Impact:     historyIncident.Impact,
 			ShortLink:  historyIncident.ShortLink,
-			Components: AffectedComponentNames(historyIncident.AffectedComponents),
+			Components: historyIncident.ComponentNames(),
 			CreatedAt:  historyIncident.CreatedAt,
 			ResolvedAt: historyIncident.ResolvedAt,
 			Body:       TruncateBody(LatestUpdateBody(historyIncident.IncidentUpdates), RESOLVED_BODY_LIMIT),
